@@ -1,6 +1,9 @@
 #!name = 地区分组
-#!desc = 按节点名称筛选地区的策略组模板。复制为 modules/region-groups.local.module 后把订阅链接填进 policy-path，该文件已被 .gitignore 忽略，不会进入仓库。
+#!desc = 按节点名称筛选地区的策略组模板。复制为 modules/region-groups.local.module 后把订阅链接填进 policy-path，该文件已被 .gitignore 忽略，不会进入仓库。启用本模块前，请先删除 App 中手工建立的同名分组，避免重名冲突。
 
 [Proxy Group]
+# url-test 为自动测速择优；组内只有一个节点时测速没有意义，可把类型改成 select 手动选择。
 US = url-test, policy-path = 在此填入你的订阅链接, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5, update-interval = 43200
 TW = url-test, policy-path = 在此填入你的订阅链接, policy-regex-filter = (?i)(台湾|台灣|臺灣|台北|臺北|新北|彰化|高雄|新竹|Taiwan|\bTW\b|🇹🇼), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5, update-interval = 43200
+SG = url-test, policy-path = 在此填入你的订阅链接, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5, update-interval = 43200
+JP = url-test, policy-path = 在此填入你的订阅链接, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5, update-interval = 43200

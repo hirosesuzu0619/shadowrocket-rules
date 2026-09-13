@@ -3,11 +3,11 @@
 
 [Proxy Group]
 # 不写 policy-path，正则即作用于 Shadowrocket 当前的全部节点（含订阅拉取的节点）。
-# url-test 在筛出的同地区节点中按延迟择优，并在节点失效时自动切换。
-US = url-test, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+# 一律使用 select：只做筛选与手动选择，不发测速探测，出口节点不会自行变动。
+US = select, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸)
 TW = select, policy-regex-filter = (?i)^台湾1$  # 交易所要求出口固定，正则收窄到单个节点，组内无第二个候选即不会切换；换节点改这里的名字
-SG = url-test, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
-JP = url-test, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+SG = select, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬)
+JP = select, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵)
 
 [Rule]
 # ——手工添加 ——

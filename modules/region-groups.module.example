@@ -1,0 +1,6 @@
+#!name = 地区分组
+#!desc = 按节点名称筛选地区的策略组模板。复制为 modules/region-groups.local.module 后把订阅链接填进 policy-path，该文件已被 .gitignore 忽略，不会进入仓库。
+
+[Proxy Group]
+US = url-test, policy-path = 在此填入你的订阅链接, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5, update-interval = 43200
+TW = url-test, policy-path = 在此填入你的订阅链接, policy-regex-filter = (?i)(台湾|台灣|臺灣|台北|臺北|新北|彰化|高雄|新竹|Taiwan|\bTW\b|🇹🇼), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5, update-interval = 43200

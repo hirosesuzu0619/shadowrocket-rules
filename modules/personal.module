@@ -34,12 +34,25 @@ DOMAIN-SUFFIX,mask.icloud.com,US
 DOMAIN-SUFFIX,apps.mzstatic.com,US
 DOMAIN-KEYWORD,siri,US
 
-# —— MEXC 及其 SDK ——
-# 提取自抓包记录的主域名（去掉子域与端口）
+# —— MEXC ——
+# 交易所主域与镜像域
 DOMAIN-SUFFIX,mexc.com,TW
 DOMAIN-SUFFIX,flytogarden.com,TW
-DOMAIN-SUFFIX,dgshen.com,TW
 DOMAIN-SUFFIX,coldbookfly.ru,TW
+DOMAIN-SUFFIX,dgshen.com,TW
+# 自有监控与埋点：sentry 错误上报、watchman SDK、trochilus
+DOMAIN-SUFFIX,gotoda.co,TW
+# 推送：EngageLab（极光海外版）的三套域名
 DOMAIN-SUFFIX,engagelab.cc,TW
 DOMAIN-SUFFIX,theengagelab.com,TW
+DOMAIN-SUFFIX,engage7.com,TW
+DOMAIN-SUFFIX,ecbsn.com,TW
+# 归因：AppsFlyer
 DOMAIN-SUFFIX,appsflyersdk.com,TW
+# App 资源包下载
+DOMAIN,s3-app-release.s3.ap-northeast-1.amazonaws.com,TW
+# 硬编码直连 IP（华为云新加坡），域名规则匹配不到，只能按 IP 命中
+IP-CIDR,119.13.110.238/32,TW,no-resolve
+IP-CIDR,190.92.208.115/32,TW,no-resolve
+# 中国移动号码认证 SDK：直连会把真实运营商 IP 交给 App，屏蔽后一键登录失效，改用短信验证码
+DOMAIN-SUFFIX,mocortech.com,REJECT

@@ -1,5 +1,13 @@
 #!name = 个人
-#!desc = 个人最高优先级规则层。请置于所有其他模块之上。此模块为本地模块，不会被任何自动更新覆盖。规则引用的 US / TW / SG / JP 策略组需在 Shadowrocket 中另行建立，详见仓库 README。
+#!desc = 个人最高优先级规则层。请置于所有其他模块之上。此模块为本地模块，不会被任何自动更新覆盖。启用前请先删除 App 中手工建立的同名分组。
+
+[Proxy Group]
+# 不写 policy-path，正则即作用于 Shadowrocket 当前的全部节点（含订阅拉取的节点）。
+# url-test 在筛出的同地区节点中按延迟择优，并在节点失效时自动切换。
+US = url-test, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+TW = url-test, policy-regex-filter = (?i)(台湾|台灣|臺灣|台北|臺北|新北|彰化|高雄|新竹|Taiwan|\bTW\b|🇹🇼), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+SG = url-test, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+JP = url-test, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
 
 [Rule]
 # ——手工添加 ——

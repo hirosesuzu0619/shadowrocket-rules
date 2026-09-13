@@ -1,0 +1,33 @@
+#!name = 个人
+#!desc = 个人最高优先级规则层。请置于所有其他模块之上。此模块为本地模块，不会被任何自动更新覆盖。
+
+[Proxy Group]
+# 地区分组：从当前节点列表中按名称正则筛选，自动测速择优。
+# 若节点来自远程订阅，可在下面各组末尾追加 policy-path = 你的订阅链接
+US = url-test, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+TW = url-test, policy-regex-filter = (?i)(台湾|台灣|臺灣|台北|臺北|新北|彰化|高雄|新竹|Taiwan|\bTW\b|🇹🇼), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 100, timeout = 5
+
+[Rule]
+# ——手工添加 ——
+
+# —— siri ai ——
+# 格式: DOMAIN-SUFFIX,域名,US
+# 精确匹配用 DOMAIN, 需要直连写 DIRECT, 需要屏蔽写 REJECT
+DOMAIN,guzzoni.apple.com,US
+DOMAIN,mask-api.fe.apple-dns.net,US
+DOMAIN,mask-api.icloud.com,US
+DOMAIN,mask-t.apple-dns.net,US
+DOMAIN,mask.apple-dns.net,US
+DOMAIN-SUFFIX,smoot.apple.com,US
+DOMAIN-SUFFIX,apple-relay.apple.com,US
+DOMAIN-SUFFIX,apple-relay.cloudflare.com,US
+DOMAIN-SUFFIX,apple-relay.fastly-edge.com,US
+DOMAIN-SUFFIX,apple-relay.mask.apple-dns.net,US
+DOMAIN-SUFFIX,cp4.cloudflare.com,US
+DOMAIN-SUFFIX,gspe1-ssl.ls.apple.com,US
+DOMAIN-SUFFIX,gateway.icloud.com,US
+DOMAIN-SUFFIX,ls.apple.com,US
+DOMAIN-SUFFIX,mask-h2.icloud.com,US
+DOMAIN-SUFFIX,mask.icloud.com,US
+DOMAIN-SUFFIX,apps.mzstatic.com,US
+DOMAIN-KEYWORD,siri,US

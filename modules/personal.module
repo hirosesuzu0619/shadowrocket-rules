@@ -33,3 +33,13 @@ DOMAIN-SUFFIX,mask-h2.icloud.com,US
 DOMAIN-SUFFIX,mask.icloud.com,US
 DOMAIN-SUFFIX,apps.mzstatic.com,US
 DOMAIN-KEYWORD,siri,US
+
+# —— MEXC 及其 SDK ——
+# 提取自抓包记录的主域名（去掉子域与端口）
+DOMAIN-SUFFIX,mexc.com,TW
+DOMAIN-SUFFIX,flytogarden.com,TW
+DOMAIN-SUFFIX,dgshen.com,TW
+DOMAIN-SUFFIX,coldbookfly.ru,TW
+DOMAIN-SUFFIX,engagelab.cc,TW
+DOMAIN-SUFFIX,theengagelab.com,TW
+DOMAIN-SUFFIX,appsflyersdk.com,TW

@@ -58,5 +58,5 @@ DOMAIN-SUFFIX,protectyouraccess.com,TW
 # 硬编码直连 IP（华为云新加坡），域名规则匹配不到，只能按 IP 命中
 IP-CIDR,119.13.110.238/32,TW,no-resolve
 IP-CIDR,190.92.208.115/32,TW,no-resolve
-# 中国移动号码认证 SDK：直连会把真实运营商 IP 交给 App，屏蔽后一键登录失效，改用短信验证码
-DOMAIN-SUFFIX,mocortech.com,REJECT
+# 中国移动号码认证 SDK：此前直连会把真实运营商 IP 交给 App，改走代理避免直连
+DOMAIN-SUFFIX,mocortech.com,TW

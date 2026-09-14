@@ -60,3 +60,6 @@ IP-CIDR,119.13.110.238/32,TW,no-resolve
 IP-CIDR,190.92.208.115/32,TW,no-resolve
 # MEXC 自有资源域名：静态资源、配置下发与客户端安装包，此前 static 子域直连，真实地址等于直接交给交易所
 DOMAIN-SUFFIX,mocortech.com,TW
+
+# —— 钱包 ——
+DOMAIN-SUFFIX,ethenapay-api.co,SG

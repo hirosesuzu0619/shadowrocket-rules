@@ -67,3 +67,8 @@ DOMAIN-SUFFIX,ethenapay-api.co,SG
 # —— Meta AI ——
 DOMAIN-SUFFIX,meta.ai,US
 DOMAIN-SUFFIX,meta.com,US
+
+# —— 第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 已有的新加坡出口保持一致）——
+# geetest 是独立的验证码厂商，非某个交易所自有；cloudauth-device 是阿里云实人认证，直连会在做身份核验时原样交出真实 IP
+DOMAIN-SUFFIX,geetest.com,SG
+DOMAIN-SUFFIX,cloudauth-device.aliyuncs.com,SG

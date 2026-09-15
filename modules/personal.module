@@ -72,3 +72,16 @@ DOMAIN-SUFFIX,meta.com,US
 # geetest 是独立的验证码厂商，非某个交易所自有；cloudauth-device 是阿里云实人认证，直连会在做身份核验时原样交出真实 IP
 DOMAIN-SUFFIX,geetest.com,SG
 DOMAIN-SUFFIX,cloudauth-device.aliyuncs.com,SG
+
+# —— 希尔顿 ——
+# 会话里 App 的自有域名全部走 FINAL,DIRECT，等于用真实 IP 查房价、登录会员账号；酒店按来源地区做定价与会员政策，出口需与账号注册地一致
+# smetric 是 Adobe 的埋点采集域，保持原有的 REJECT，写在前面以免被下面的后缀规则吃掉
+DOMAIN-SUFFIX,smetric.hilton.com,REJECT
+DOMAIN-SUFFIX,hilton.com,US
+# m.hilton.io 是 App 的主 API，hiltonapi.com 是订房/会员接口
+DOMAIN-SUFFIX,hilton.io,US
+DOMAIN-SUFFIX,hiltonapi.com,US
+# Conductrics A/B 分流接口，按 IP 决定给哪套页面；同域的 cdn-v3 子域已被其他模块 REJECT，此处只放 API
+DOMAIN,api-hilton.conductrics.net,US
+# Clarip 是希尔顿页面加载的隐私同意管理 SDK，按 IP 判定适用法域
+DOMAIN,cdn.clarip.com,US

@@ -85,3 +85,5 @@ DOMAIN-SUFFIX,hiltonapi.com,US
 DOMAIN,api-hilton.conductrics.net,US
 # Clarip 是希尔顿页面加载的隐私同意管理 SDK，按 IP 判定适用法域
 DOMAIN,cdn.clarip.com,US
+# Rokt 是希尔顿确认页加载的优惠推送平台，会话里同样走了直连
+DOMAIN,apps.rokt-api.com,US

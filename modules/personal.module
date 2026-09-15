@@ -63,3 +63,7 @@ DOMAIN-SUFFIX,mocortech.com,TW
 
 # —— 钱包 ——
 DOMAIN-SUFFIX,ethenapay-api.co,SG
+
+# —— Meta AI ——
+DOMAIN-SUFFIX,meta.ai,US
+DOMAIN-SUFFIX,meta.com,US

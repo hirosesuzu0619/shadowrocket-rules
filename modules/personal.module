@@ -90,3 +90,9 @@ DOMAIN,api-hilton.conductrics.net,US
 DOMAIN,cdn.clarip.com,US
 # Rokt 是希尔顿确认页加载的优惠推送平台，会话里同样走了直连
 DOMAIN,apps.rokt-api.com,US
+
+# —— Kraken ——
+# 15:44 登录时段密集出现，此前落在别的模块的通用 PROXY 策略下、出口是台湾节点，与账号注册地不一致
+DOMAIN-SUFFIX,kraken.com,US
+# Kraken 专属的客服/帮助中心子域，同一时段反复出现；zendesk.com 根域是公共客服平台，其他公司的子域不受影响
+DOMAIN,kraken.zendesk.com,US

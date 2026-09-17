@@ -39,6 +39,7 @@ DOMAIN-KEYWORD,siri,US
 # 交易所主域与镜像域
 DOMAIN-SUFFIX,mexc.com,TW
 DOMAIN-SUFFIX,flytogarden.com,TW
+DOMAIN-SUFFIX,hotbookzone.com,TW
 DOMAIN-SUFFIX,coldbookfly.ru,TW
 DOMAIN-SUFFIX,dgshen.com,TW
 # 自有监控与埋点：sentry 错误上报、watchman SDK、trochilus

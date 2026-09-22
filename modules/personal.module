@@ -96,3 +96,9 @@ DOMAIN,apps.rokt-api.com,US
 DOMAIN-SUFFIX,kraken.com,US
 # Kraken 专属的客服/帮助中心子域，同一时段反复出现；zendesk.com 根域是公共客服平台，其他公司的子域不受影响
 DOMAIN,kraken.zendesk.com,US
+
+# —— Kalshi ——
+# mobile-api、api.elections、assets、social-assets 等子域此前全部落在 FINAL 兜底的台湾出口上
+DOMAIN-SUFFIX,kalshi.com,US
+# 另有几个自有素材桶挂在 amazonaws.com 下、名字是前缀而非后缀（kalshi-public-docs、kalshi-public-images），只能靠关键字命中
+DOMAIN-KEYWORD,kalshi,US

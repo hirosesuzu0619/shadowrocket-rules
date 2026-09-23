@@ -82,6 +82,14 @@ DOMAIN-SUFFIX,ethenapay-api.co,SG
 DOMAIN-SUFFIX,meta.ai,US
 DOMAIN-SUFFIX,meta.com,US
 
+# —— X ——
+# 此前落在别的模块的「美国节点」组，会在美国1/美国4之间切换，走美国4时冷启动明显偏慢；改走本模块的 US，仅在节点不通时才顺延
+DOMAIN-SUFFIX,x.com,US
+DOMAIN-SUFFIX,twitter.com,US
+# twimg.com 是图片、视频与静态资源，t.co 是短链跳转
+DOMAIN-SUFFIX,twimg.com,US
+DOMAIN-SUFFIX,t.co,US
+
 # —— 第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 已有的新加坡出口保持一致）——
 # geetest 是独立的验证码厂商，非某个交易所自有；cloudauth-device 是阿里云实人认证，直连会在做身份核验时原样交出真实 IP
 DOMAIN-SUFFIX,geetest.com,SG

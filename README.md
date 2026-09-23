@@ -28,4 +28,4 @@
 ### 规则
 
 格式是 `类型,值,策略`。精确匹配用 `DOMAIN`，后缀匹配用 `DOMAIN-SUFFIX`，关键字匹配用 `DOMAIN-KEYWORD`；策略可以填 `US`、`TW`、`SG`、`JP` 这类策略组名，也可以填 `DIRECT` 直连或 `REJECT` 屏蔽。
-当前规则把 Siri 与 Apple 隐私中继相关的域名统一指向 `US`，X（含图片视频资源与 t.co 短链）也指向 `US`；MEXC 及其推送、监控、归因、资源下载等一整套域名指向 `TW`，Bybit 的主域、备用 API 域与资源域同样指向 `TW`。其中 `DOMAIN-KEYWORD,siri,US` 是关键字匹配，凡域名含 siri 都会命中，范围比其他几条宽，若出现误伤可改成更精确的写法。
+当前规则把 Siri 与 Apple 隐私中继相关的域名统一指向 `US`，X（含图片视频资源与 t.co 短链）以及 Meta AI、Claude、OpenAI、Gemini、Grok 这几家 AI 服务也指向 `US`；Gemini 只挑出 Google 旗下的相关子域做精确匹配，不影响其他 Google 服务；MEXC 及其推送、监控、归因、资源下载等一整套域名指向 `TW`，Bybit 的主域、备用 API 域与资源域同样指向 `TW`。其中 `DOMAIN-KEYWORD,siri,US` 是关键字匹配，凡域名含 siri 都会命中，范围比其他几条宽，若出现误伤可改成更精确的写法。

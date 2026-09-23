@@ -81,6 +81,37 @@ DOMAIN-SUFFIX,ethenapay-api.co,SG
 # —— Meta AI ——
 DOMAIN-SUFFIX,meta.ai,US
 DOMAIN-SUFFIX,meta.com,US
+# hatch.metaaivm.com 是 Meta AI 的后端，不在上面两个后缀之下，此前落到 FINAL 的台湾出口
+DOMAIN-SUFFIX,metaaivm.com,US
+
+# —— Claude ——
+# 此前落在别的模块的「美国节点」组，在美国1/美国4之间切换；status.claude.com 更是走了 PROXY 的台湾出口
+DOMAIN-SUFFIX,claude.ai,US
+DOMAIN-SUFFIX,claude.com,US
+DOMAIN-SUFFIX,anthropic.com,US
+DOMAIN-SUFFIX,claudeusercontent.com,US
+
+# —— OpenAI ——
+# chatgpt.com 为主站与 App 接口，oaistatic/oaiusercontent 为静态资源与用户上传/生成的文件
+DOMAIN-SUFFIX,openai.com,US
+DOMAIN-SUFFIX,chatgpt.com,US
+DOMAIN-SUFFIX,oaistatic.com,US
+DOMAIN-SUFFIX,oaiusercontent.com,US
+DOMAIN-SUFFIX,sora.com,US
+
+# —— Gemini ——
+# google.com 整体由别的模块分到「谷歌服务」，这里只挑出 Gemini 相关的子域，用精确匹配避免牵动其他 Google 服务
+DOMAIN,gemini.google.com,US
+DOMAIN-SUFFIX,gemini.google,US
+DOMAIN,aistudio.google.com,US
+DOMAIN,notebooklm.google.com,US
+DOMAIN,generativelanguage.googleapis.com,US
+DOMAIN,proactivebackend-pa.googleapis.com,US
+DOMAIN,alkalimakersuite-pa.clients6.google.com,US
+
+# —— Grok ——
+DOMAIN-SUFFIX,grok.com,US
+DOMAIN-SUFFIX,x.ai,US
 
 # —— X ——
 # 此前落在别的模块的「美国节点」组，会在美国1/美国4之间切换，走美国4时冷启动明显偏慢；改走本模块的 US，仅在节点不通时才顺延

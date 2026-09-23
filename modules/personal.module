@@ -64,6 +64,17 @@ IP-CIDR,190.92.208.115/32,TW,no-resolve
 # MEXC 自有资源域名：静态资源、配置下发与客户端安装包，此前 static 子域直连，真实地址等于直接交给交易所
 DOMAIN-SUFFIX,mocortech.com,TW
 
+# —— Bybit ——
+# api3.bybit.biz 后台心跳此前落在别的模块的通用 PROXY 策略下，出口是台湾2而非本模块钉死的节点，与 MEXC 同样需要固定出口
+DOMAIN-SUFFIX,bybit.biz,TW
+DOMAIN-SUFFIX,bybit.com,TW
+DOMAIN-SUFFIX,bybitglobal.com,TW
+# bytick.com 是官方备用 API 域名，bycsi.com 是静态资源/CDN 域名
+DOMAIN-SUFFIX,bytick.com,TW
+DOMAIN-SUFFIX,bycsi.com,TW
+# 各地区站点（bybit.nl、bybit.eu、bybit-tr 等）名字不一，用关键字兜底
+DOMAIN-KEYWORD,bybit,TW
+
 # —— 钱包 ——
 DOMAIN-SUFFIX,ethenapay-api.co,SG
 

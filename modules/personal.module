@@ -4,9 +4,10 @@
 [Proxy Group]
 # 不写 policy-path，正则即作用于 Shadowrocket 当前的全部节点（含订阅拉取的节点）。
 # US / SG / JP 用 fallback：固定使用当前节点，仅在它不通时才顺延到下一个，不按延迟择优。
-# TW 用 select 且正则只匹配单个节点，出口完全固定，供交易所类场景使用。
+# MEXC_TW 用 select 且正则只匹配单个节点，出口完全固定，供交易所类场景使用；换节点改该行正则里的节点名。
+# 注释一律单独成行：写在策略组行尾的注释会被并进正则，组内一个节点都匹配不到，引用它的规则会退回首页所选节点。
 US = fallback, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
-TW = select, policy-regex-filter = (?i)^台湾1$  # 交易所要求出口固定，正则收窄到单个节点，组内无第二个候选即不会切换；换节点改这里的名字
+MEXC_TW = select, policy-regex-filter = (?i)^台湾1$
 SG = fallback, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
 JP = fallback, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
 
@@ -37,43 +38,43 @@ DOMAIN-KEYWORD,siri,US
 
 # —— MEXC ——
 # 交易所主域与镜像域
-DOMAIN-SUFFIX,mexc.com,TW
-DOMAIN-SUFFIX,flytogarden.com,TW
-DOMAIN-SUFFIX,hotbookzone.com,TW
-DOMAIN-SUFFIX,greentreeone.com,TW
-DOMAIN-SUFFIX,coldbookfly.ru,TW
-DOMAIN-SUFFIX,dgshen.com,TW
+DOMAIN-SUFFIX,mexc.com,MEXC_TW
+DOMAIN-SUFFIX,flytogarden.com,MEXC_TW
+DOMAIN-SUFFIX,hotbookzone.com,MEXC_TW
+DOMAIN-SUFFIX,greentreeone.com,MEXC_TW
+DOMAIN-SUFFIX,coldbookfly.ru,MEXC_TW
+DOMAIN-SUFFIX,dgshen.com,MEXC_TW
 # 自有监控与埋点：sentry 错误上报、watchman SDK、trochilus
-DOMAIN-SUFFIX,gotoda.co,TW
+DOMAIN-SUFFIX,gotoda.co,MEXC_TW
 # 推送：EngageLab（极光海外版）的三套域名
-DOMAIN-SUFFIX,engagelab.cc,TW
-DOMAIN-SUFFIX,theengagelab.com,TW
-DOMAIN-SUFFIX,engage7.com,TW
-DOMAIN-SUFFIX,engageforce.net,TW
-DOMAIN-SUFFIX,ecbsn.com,TW
+DOMAIN-SUFFIX,engagelab.cc,MEXC_TW
+DOMAIN-SUFFIX,theengagelab.com,MEXC_TW
+DOMAIN-SUFFIX,engage7.com,MEXC_TW
+DOMAIN-SUFFIX,engageforce.net,MEXC_TW
+DOMAIN-SUFFIX,ecbsn.com,MEXC_TW
 # 归因：AppsFlyer
-DOMAIN-SUFFIX,appsflyersdk.com,TW
+DOMAIN-SUFFIX,appsflyersdk.com,MEXC_TW
 # App 资源包下载
-DOMAIN,s3-app-release.s3.ap-northeast-1.amazonaws.com,TW
+DOMAIN,s3-app-release.s3.ap-northeast-1.amazonaws.com,MEXC_TW
 # 会话期间直连的两个域名：Google 的 ATT 分析域名，以及一台 OVH 法兰克福主机（来源未确认）
-DOMAIN-SUFFIX,app-analytics-services-att.com,TW
-DOMAIN-SUFFIX,protectyouraccess.com,TW
+DOMAIN-SUFFIX,app-analytics-services-att.com,MEXC_TW
+DOMAIN-SUFFIX,protectyouraccess.com,MEXC_TW
 # 硬编码直连 IP（华为云新加坡），域名规则匹配不到，只能按 IP 命中
-IP-CIDR,119.13.110.238/32,TW,no-resolve
-IP-CIDR,190.92.208.115/32,TW,no-resolve
+IP-CIDR,119.13.110.238/32,MEXC_TW,no-resolve
+IP-CIDR,190.92.208.115/32,MEXC_TW,no-resolve
 # MEXC 自有资源域名：静态资源、配置下发与客户端安装包，此前 static 子域直连，真实地址等于直接交给交易所
-DOMAIN-SUFFIX,mocortech.com,TW
+DOMAIN-SUFFIX,mocortech.com,MEXC_TW
 
 # —— Bybit ——
 # api3.bybit.biz 后台心跳此前落在别的模块的通用 PROXY 策略下，出口是台湾2而非本模块钉死的节点，与 MEXC 同样需要固定出口
-DOMAIN-SUFFIX,bybit.biz,TW
-DOMAIN-SUFFIX,bybit.com,TW
-DOMAIN-SUFFIX,bybitglobal.com,TW
+DOMAIN-SUFFIX,bybit.biz,MEXC_TW
+DOMAIN-SUFFIX,bybit.com,MEXC_TW
+DOMAIN-SUFFIX,bybitglobal.com,MEXC_TW
 # bytick.com 是官方备用 API 域名，bycsi.com 是静态资源/CDN 域名
-DOMAIN-SUFFIX,bytick.com,TW
-DOMAIN-SUFFIX,bycsi.com,TW
+DOMAIN-SUFFIX,bytick.com,MEXC_TW
+DOMAIN-SUFFIX,bycsi.com,MEXC_TW
 # 各地区站点（bybit.nl、bybit.eu、bybit-tr 等）名字不一，用关键字兜底
-DOMAIN-KEYWORD,bybit,TW
+DOMAIN-KEYWORD,bybit,MEXC_TW
 
 # —— 钱包 ——
 DOMAIN-SUFFIX,ethenapay-api.co,SG

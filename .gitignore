@@ -1,3 +1,5 @@
 # 含订阅链接的本地模块，只放在本地 HTTP 服务上，不进仓库
 *.local.module
 modules/*.local.module
+# 在 App 里改过、含 MITM 证书的配置副本
+*.local.conf

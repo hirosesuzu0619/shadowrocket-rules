@@ -1,6 +1,19 @@
 # shadowrocket-rules
 
-存放个人使用的 Shadowrocket 模块与规则。仓库是公开的，模块里不含订阅链接、节点名等任何私密内容。
+存放个人使用的 Shadowrocket 配置、模块与规则。仓库是公开的，文件里不含订阅链接、节点名等任何私密内容。
+
+## configs/base.conf
+
+基础配置文件，只负责国内直连、国外代理这一层兜底分流。Shadowrocket 会把模块的规则排在配置文件的规则之前，所以 `personal.module` 等模块先匹配，模块没命中的流量才轮到这里。
+
+规则按顺序是：局域网直连；国内域名直连（blackmatrix7 维护的 `China.list` 与 `China_Domain.list`，前者含关键字和 IP 段，按 `RULE-SET` 引用，后者是纯域名集合，按 `DOMAIN-SET` 引用）；以上都没命中时按解析出的 IP 判断，`GEOIP,CN` 直连；其余 `FINAL,PROXY`，走首页所选节点。
+文件里没有定义任何策略组，也就不会与模块里的 `US`、`MEXC_TW`、`SG`、`JP` 重名；需要固定出口的服务照旧写进模块。
+DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避免请求绕开节点、从本机 IPv6 地址直接出去。
+`udp-policy-not-supported-behaviour = REJECT` 让节点不支持 UDP 时拒绝 UDP 连接，QUIC 会随之退回 TCP 走代理，而不是改成直连。
+
+使用方法是在 App 的「配置」页添加远程配置，填入 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/base.conf` 并设为当前配置，之后再在模块列表里启用 `personal.module`。
+切换过来之前，先看一下其他远程模块有没有引用旧配置里的策略组（例如「谷歌服务」「苹果服务」「美国节点」）：新配置里没有这些组，引用它们的规则需要一并调整或停用对应模块。
+文件里刻意不写 `[MITM]`。在 App 里生成证书时，口令和证书会写进设备上的那份配置，只留在本机，不要提交回仓库；在本地另存的副本请命名为 `*.local.conf`，已被 `.gitignore` 忽略。
 
 ## modules/personal.module
 

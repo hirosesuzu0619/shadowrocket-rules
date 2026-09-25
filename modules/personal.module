@@ -51,6 +51,17 @@ DOMAIN,hls.itunes.apple.com,US
 DOMAIN,hls-amt.itunes.apple.com,US
 DOMAIN,hls-svod.itunes.apple.com,US
 DOMAIN,hls-svod-aoc.itunes.apple.com,US
+# 9 月 25 日播放时视频分片已走美国1，但同一会话里的其余接口分散在台湾2 和直连，出口不一致，视频加载不出来
+# amp-api.videos.apple.com 是视频内容接口，cma2、pd、bookkeeper（播放进度）与 bag（服务端点配置）此前都不在规则里
+DOMAIN-SUFFIX,videos.apple.com,US
+DOMAIN,cma2.itunes.apple.com,US
+DOMAIN,pd.itunes.apple.com,US
+DOMAIN,bookkeeper.itunes.apple.com,US
+DOMAIN,bag.itunes.apple.com,US
+# 订阅权益校验走账号专属的 pNN-buy.itunes.apple.com，编号因账号而异，只能用关键字命中；App Store 的购买请求也会随之走 US，下载不受影响
+DOMAIN-KEYWORD,-buy.itunes.apple.com,US
+# 体育赛事比分与直播信息
+DOMAIN,sportskit-api.cdn-apple.com,US
 
 # —— MEXC ——
 # 交易所主域与镜像域

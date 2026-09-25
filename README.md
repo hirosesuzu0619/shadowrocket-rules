@@ -42,4 +42,4 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 ### 规则
 
 格式是 `类型,值,策略`。精确匹配用 `DOMAIN`，后缀匹配用 `DOMAIN-SUFFIX`，关键字匹配用 `DOMAIN-KEYWORD`；策略可以填 `US`、`MEXC_TW`、`SG`、`JP` 这类策略组名，也可以填 `DIRECT` 直连或 `REJECT` 屏蔽。
-当前规则把 Siri 与 Apple 隐私中继相关的域名统一指向 `US`，X（含图片视频资源与 t.co 短链）以及 Meta AI、Claude、OpenAI、Gemini、Grok 这几家 AI 服务也指向 `US`；Claude 相关的 Cloudflare 人机验证、statsig 特性开关以及 sentry、datadog、sift 遥测风控域名同样指向 `US`，让它们与主站同一出口，其中 sentry、datadog 为多个 App 共用；Gemini 只挑出 Google 旗下的相关子域做精确匹配，不影响其他 Google 服务；MEXC 及其推送、监控、归因、资源下载、阿里云日志上报与设备风控等一整套域名指向 `MEXC_TW`，Bybit 的主域、备用 API 域与资源域同样指向 `MEXC_TW`。其中 `DOMAIN-KEYWORD,siri,US` 是关键字匹配，凡域名含 siri 都会命中，范围比其他几条宽，若出现误伤可改成更精确的写法。
+当前规则把 Siri 与 Apple 隐私中继相关的域名统一指向 `US`，Apple TV App（Apple TV+）的主站、片单目录、播放鉴权与视频流域名也指向 `US`，只列具体的 `itunes.apple.com` 子域，不影响 App Store 下载，X（含图片视频资源与 t.co 短链）以及 Meta AI、Claude、OpenAI、Gemini、Grok 这几家 AI 服务也指向 `US`；Claude 相关的 Cloudflare 人机验证、statsig 特性开关以及 sentry、datadog、sift 遥测风控域名同样指向 `US`，让它们与主站同一出口，其中 sentry、datadog 为多个 App 共用；Gemini 只挑出 Google 旗下的相关子域做精确匹配，不影响其他 Google 服务；MEXC 及其推送、监控、归因、资源下载、阿里云日志上报与设备风控等一整套域名指向 `MEXC_TW`，Bybit 的主域、备用 API 域与资源域同样指向 `MEXC_TW`。其中 `DOMAIN-KEYWORD,siri,US` 是关键字匹配，凡域名含 siri 都会命中，范围比其他几条宽，若出现误伤可改成更精确的写法。

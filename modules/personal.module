@@ -64,6 +64,12 @@ IP-CIDR,119.13.110.238/32,MEXC_TW,no-resolve
 IP-CIDR,190.92.208.115/32,MEXC_TW,no-resolve
 # MEXC 自有资源域名：静态资源、配置下发与客户端安装包，此前 static 子域直连，真实地址等于直接交给交易所
 DOMAIN-SUFFIX,mocortech.com,MEXC_TW
+# 阿里云日志服务（新加坡）上的两个 MEXC 专用项目：App 日志与性能监控。只在 MEXC 运行时出现
+# 去广告模块的 log.aliyuncs.com 规则会拦截它们，SDK 随后每 5 秒重试一次；关掉去广告模块时又会被 aliyun 关键字规则直连，把真实 IP 交给交易所
+DOMAIN,molor-app-logs-default.ap-southeast-1.log.aliyuncs.com,MEXC_TW
+DOMAIN,molor-app-performance-project.ap-southeast-1.log.aliyuncs.com,MEXC_TW
+# 设备风控 SDK，与 MEXC 同一秒启动，此前落在 FINAL 走首页节点，更早还曾被 IP-ASN 规则直连
+DOMAIN-SUFFIX,turingfraud.net,MEXC_TW
 
 # —— Bybit ——
 # api3.bybit.biz 后台心跳此前落在别的模块的通用 PROXY 策略下，出口是台湾2而非本模块钉死的节点，与 MEXC 同样需要固定出口
@@ -98,9 +104,10 @@ DOMAIN-SUFFIX,statsig.com,US
 DOMAIN-SUFFIX,statsigapi.net,US
 DOMAIN-SUFFIX,featureassets.org,US
 # 遥测与风控上报：sift 按 IP 评估风险，需与主站同一出口
-# sentry.io、datadoghq.com 是多个 App 共用的公共服务，所有 App 发往这两处的上报都会走 US
+# sentry.io、datadoghq 是多个 App 共用的公共服务，所有 App 发往这两处的上报都会走 US
 DOMAIN-SUFFIX,sentry.io,US
-DOMAIN-SUFFIX,datadoghq.com,US
+# datadog 的浏览器上报域名按站点区分根域，如 browser-intake-us5-datadoghq.com，不在 datadoghq.com 之下，只能用关键字命中
+DOMAIN-KEYWORD,datadoghq,US
 DOMAIN-SUFFIX,siftscience.com,US
 
 # —— OpenAI ——

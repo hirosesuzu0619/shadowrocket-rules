@@ -36,6 +36,22 @@ DOMAIN-SUFFIX,mask.icloud.com,US
 DOMAIN-SUFFIX,apps.mzstatic.com,US
 DOMAIN-KEYWORD,siri,US
 
+# —— Apple TV App（Apple TV+）——
+# 此前没有专门规则，国内 DoH 解析到 Akamai 或 Apple 的国内节点后被 GEOIP,CN 直连，App 直连打不开
+# tv.apple.com 后缀涵盖主站与 vod-*.tv.apple.com 视频分片
+DOMAIN-SUFFIX,tv.apple.com,US
+DOMAIN,tv.applemusic.com,US
+# 片单目录、播放鉴权、播放进度同步；只列具体子域，不写 itunes.apple.com 整个后缀，以免牵动 App Store 下载与购买
+DOMAIN,uts-api.itunes.apple.com,US
+DOMAIN,play.itunes.apple.com,US
+DOMAIN,play-edge.itunes.apple.com,US
+DOMAIN,np-edge.itunes.apple.com,US
+# HLS 播放清单与视频流
+DOMAIN,hls.itunes.apple.com,US
+DOMAIN,hls-amt.itunes.apple.com,US
+DOMAIN,hls-svod.itunes.apple.com,US
+DOMAIN,hls-svod-aoc.itunes.apple.com,US
+
 # —— MEXC ——
 # 交易所主域与镜像域
 DOMAIN-SUFFIX,mexc.com,MEXC_TW

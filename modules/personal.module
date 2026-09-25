@@ -91,6 +91,17 @@ DOMAIN-SUFFIX,claude.ai,US
 DOMAIN-SUFFIX,claude.com,US
 DOMAIN-SUFFIX,anthropic.com,US
 DOMAIN-SUFFIX,claudeusercontent.com,US
+# Cloudflare 人机验证，出口需与 claude.ai 一致，否则容易反复弹验证；用精确匹配，避免牵动 apple-relay.cloudflare.com 等其他子域
+DOMAIN,challenges.cloudflare.com,US
+# statsig 特性开关平台，Claude 客户端启动时拉取
+DOMAIN-SUFFIX,statsig.com,US
+DOMAIN-SUFFIX,statsigapi.net,US
+DOMAIN-SUFFIX,featureassets.org,US
+# 遥测与风控上报：sift 按 IP 评估风险，需与主站同一出口
+# sentry.io、datadoghq.com 是多个 App 共用的公共服务，所有 App 发往这两处的上报都会走 US
+DOMAIN-SUFFIX,sentry.io,US
+DOMAIN-SUFFIX,datadoghq.com,US
+DOMAIN-SUFFIX,siftscience.com,US
 
 # —— OpenAI ——
 # chatgpt.com 为主站与 App 接口，oaistatic/oaiusercontent 为静态资源与用户上传/生成的文件

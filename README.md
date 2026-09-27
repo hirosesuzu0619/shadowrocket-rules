@@ -6,8 +6,11 @@
 
 基础配置文件，只负责国内直连、国外代理这一层兜底分流。Shadowrocket 会把模块的规则排在配置文件的规则之前，所以 `personal.module` 等模块先匹配，模块没命中的流量才轮到这里。
 
-规则按顺序是：局域网直连；国内域名直连（blackmatrix7 维护的 `China.list` 与 `China_Domain.list`，前者含关键字和 IP 段，按 `RULE-SET` 引用，后者是纯域名集合，按 `DOMAIN-SET` 引用）；以上都没命中时按解析出的 IP 判断，`GEOIP,CN` 直连；其余 `FINAL,PROXY`，走首页所选节点。
-文件里没有定义任何策略组，也就不会与模块里的 `US`、`MEXC_TW`、`SG`、`JP` 重名；需要固定出口的服务照旧写进模块。
+规则按顺序是：局域网直连；国内域名直连（blackmatrix7 维护的 `China.list` 与 `China_Domain.list`，前者含关键字和 IP 段，按 `RULE-SET` 引用，后者是纯域名集合，按 `DOMAIN-SET` 引用）；常用境外服务按域名走 `EAST_ASIA`；以上都没命中时按解析出的 IP 判断，`GEOIP,CN` 直连；其余 `FINAL,EAST_ASIA`。
+
+文件里只定义了一个策略组 `EAST_ASIA`，类型是 `url-test`，在香港、日本、韩国节点里按延迟自动择优，`tolerance = 50` 让延迟相差不到 50 毫秒时不切换。它和模块里的分组一样不写 `policy-path`，正则直接筛选全部节点，并用否定前瞻排除名字里带「倍」的倍率节点，以及「剩余流量」「套餐到期」「官网」这类信息节点。下文模块一节提到的 `url-test` 反复切换问题只对交易所这类看出口 IP 的服务有影响，这些服务已被模块钉在固定出口上，普通浏览不受影响。组名刻意不叫 `PROXY`、`AUTO` 这类常见名字，避免与模块或其他配置来源重名。
+
+常用境外名单直接写在文件里，内容是 Google、YouTube、Telegram、GitHub、Reddit、Netflix 等常见站点的关键字和后缀。以前这些域名要先经国内 DoH 解析，再由 `GEOIP,CN` 判断不在国内，才落到兜底规则；现在按域名直接命中，每个新域名省去一轮 DNS 查询，被污染的解析结果也不再影响分流。没有引用 blackmatrix7 的 `Global` 或 `Proxy` 名单，因为它们包含 `apple.com`、`icloud.com`、`microsoft.com`、`akamai.net` 等域名，会把 iCloud、系统更新和国内也在使用的 CDN 一并改走代理。X 与各家 AI 服务已由模块钉到 `US`，不在这份名单里重复。需要固定出口的服务照旧写进模块。
 DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避免请求绕开节点、从本机 IPv6 地址直接出去。
 `udp-policy-not-supported-behaviour = REJECT` 让节点不支持 UDP 时拒绝 UDP 连接，QUIC 会随之退回 TCP 走代理，而不是改成直连。
 

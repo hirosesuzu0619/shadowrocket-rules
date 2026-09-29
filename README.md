@@ -47,6 +47,8 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 格式是 `类型,值,策略`。精确匹配用 `DOMAIN`，后缀匹配用 `DOMAIN-SUFFIX`，关键字匹配用 `DOMAIN-KEYWORD`；策略可以填 `US`、`MEXC_TW`、`SG`、`JP` 这类策略组名，也可以填 `DIRECT` 直连或 `REJECT` 屏蔽。
 当前规则把 Siri 与 Apple 隐私中继相关的域名统一指向 `US`，Apple TV App（Apple TV+）的主站、片单目录、播放鉴权、订阅校验、播放进度与视频流域名也指向 `US`，让同一次播放的所有请求从同一出口出去，只列具体的 `itunes.apple.com` 子域，不影响 App Store 下载，X（含图片视频资源与 t.co 短链）以及 Meta AI、Claude、OpenAI、Gemini、Grok 这几家 AI 服务也指向 `US`；Claude 相关的 Cloudflare 人机验证、statsig 特性开关以及 sentry、datadog、sift 遥测风控域名同样指向 `US`，让它们与主站同一出口，其中 sentry、datadog 为多个 App 共用；Gemini 只挑出 Google 旗下的相关子域做精确匹配，不影响其他 Google 服务；MEXC 及其推送、监控、归因、资源下载、阿里云日志上报与设备风控等一整套域名指向 `MEXC_TW`，Bybit 的主域、备用 API 域与资源域同样指向 `MEXC_TW`。其中 `DOMAIN-KEYWORD,siri,US` 是关键字匹配，凡域名含 siri 都会命中，范围比其他几条宽，若出现误伤可改成更精确的写法。
 
+规则的第一条是 `AND,((PROTOCOL,UDP),(DST-PORT,443)),REJECT-NO-DROP`，拒绝所有 UDP 443 也就是 QUIC 流量。国内运营商对出境 UDP 限速和丢包都很重，QUIC 经节点的 UDP 转发时，X 这类 App 从后台切回来重新建连容易卡住，要等超时才退回 TCP；直接拒绝后 App 立即改用 TCP。这条必须排在所有域名规则之前，否则 x.com 等流量会先被后面的规则带走。国内直连的 App 也会随之改用 TCP，影响很小。
+
 ### URL 重写
 
 模块把 `google.cn`、`g.cn`（含 `www.` 前缀）用 302 跳转到 `https://www.google.com`，跳转由 Shadowrocket 在本地直接返回，不经过任何节点。对 https 地址，不解密就看不到完整 URL，所以模块同时用 `%APPEND%` 把这四个主机名追加进 `[MITM]` 的解密列表；证书仍用设备上那份配置里生成的，仓库里不出现证书和口令。没有安装并信任证书时，只有 http 地址的跳转会生效。

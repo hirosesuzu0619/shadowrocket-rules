@@ -12,6 +12,13 @@ SG = url-test, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Sing
 JP = url-test, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, tolerance = 50, timeout = 5
 
 [Rule]
+# —— 屏蔽 QUIC ——
+# 必须排在最前：若放在下面的域名规则之后，x.com 等流量会先被那些规则带走，这一条就不起作用
+# 国内运营商对出境 UDP 限速、丢包严重，QUIC 经节点的 UDP 转发时，App 从后台切回来重新建连常常卡住，要等超时才退回 TCP
+# 拒绝 UDP 443 后，App 立即改用 TCP，走节点更稳定；REJECT-NO-DROP 保证每次都立即回拒绝，不会在重试多次后改成静默丢弃
+# 国内直连的 App 也会一并改用 TCP，影响很小
+AND,((PROTOCOL,UDP),(DST-PORT,443)),REJECT-NO-DROP
+
 # ——手工添加 ——
 
 # —— siri ai ——

@@ -221,8 +221,9 @@ DOMAIN-KEYWORD,kalshi,US
 [URL Rewrite]
 # google.cn 与 g.cn 只剩一个跳转页，这里由 Shadowrocket 在本地直接回 302，改到 www.google.com
 # 原规则里的点没有转义，这里补上反斜杠，避免 . 匹配任意字符
-^https?://(www\.)?g\.cn https://www.google.com 302
-^https?://(www\.)?google\.cn https://www.google.com 302
+# 主机名后面必须紧跟 /、:、? 或到此结束：不加这一段时 g.cn.miaozhen.com 这类以 g.cn 开头的别家域名也会命中，9 月 30 日小红书的秒针广告统计请求就被跳到了 Google
+^https?://(www\.)?g\.cn([/:?]|$) https://www.google.com 302
+^https?://(www\.)?google\.cn([/:?]|$) https://www.google.com 302
 
 [MITM]
 # 对 https 地址，不解密就看不到完整 URL，302 无法生效，所以要把这四个主机名加进解密列表

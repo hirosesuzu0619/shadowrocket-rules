@@ -52,7 +52,3 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 ### URL 重写
 
 模块把 `google.cn`、`g.cn`（含 `www.` 前缀）用 302 跳转到 `https://www.google.com`，跳转由 Shadowrocket 在本地直接返回，不经过任何节点。正则在主机名之后要求紧跟 `/`、`:`、`?` 或网址结尾，否则 `g.cn.miaozhen.com` 这类以 `g.cn` 开头的其他域名也会被误跳转。对 https 地址，不解密就看不到完整 URL，所以模块同时用 `%APPEND%` 把这四个主机名追加进 `[MITM]` 的解密列表；证书仍用设备上那份配置里生成的，仓库里不出现证书和口令。没有安装并信任证书时，只有 http 地址的跳转会生效。
-
-## tools/claude-export
-
-与 Shadowrocket 无关的一个小工具：在浏览器控制台运行的 claude.ai 对话导出脚本，会把上传的图片和 PDF 一起下载并打包成 ZIP，用法见 [tools/claude-export/README.md](tools/claude-export/README.md)。

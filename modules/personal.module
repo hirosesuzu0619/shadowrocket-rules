@@ -43,6 +43,19 @@ DOMAIN-SUFFIX,mask.icloud.com,US
 DOMAIN-SUFFIX,apps.mzstatic.com,US
 DOMAIN-KEYWORD,siri,US
 
+# —— Apple Music ——
+# 音乐走国内 CDN，直连最快。9 月 30 日的日志里音频流 aod 已是直连，但每首歌开播前的播放授权 play.itunes.apple.com 与服务端点配置 bag.itunes.apple.com 被下面的 Apple TV 规则带去了美国2，播放记录上报 radio-activity 则落到 FINAL 的香港1
+# 一首歌要等美国2 取回授权才能开始解密播放，14:55 前后 play 在 35 秒内重连 5 次、14:59 的 bag 每 5 秒重连一次，开播慢、播放卡住就出在这里
+# play 与 bag 是 Apple Music 与 Apple TV+ 共用的域名，按域名无法区分 App，这里优先保证 Apple Music，统一直连；写在 Apple TV 规则之前
+DOMAIN,play.itunes.apple.com,DIRECT
+DOMAIN,bag.itunes.apple.com,DIRECT
+DOMAIN,aod.itunes.apple.com,DIRECT
+DOMAIN,streamingaudio.itunes.apple.com,DIRECT
+DOMAIN,mvod.itunes.apple.com,DIRECT
+DOMAIN,radio.itunes.apple.com,DIRECT
+DOMAIN,radio-activity.itunes.apple.com,DIRECT
+DOMAIN-SUFFIX,music.apple.com,DIRECT
+
 # —— Apple TV App（Apple TV+）——
 # 此前没有专门规则，国内 DoH 解析到 Akamai 或 Apple 的国内节点后被 GEOIP,CN 直连，App 直连打不开
 # tv.apple.com 后缀涵盖主站与 vod-*.tv.apple.com 视频分片
@@ -50,7 +63,6 @@ DOMAIN-SUFFIX,tv.apple.com,US
 DOMAIN,tv.applemusic.com,US
 # 片单目录、播放鉴权、播放进度同步；只列具体子域，不写 itunes.apple.com 整个后缀，以免牵动 App Store 下载与购买
 DOMAIN,uts-api.itunes.apple.com,US
-DOMAIN,play.itunes.apple.com,US
 DOMAIN,play-edge.itunes.apple.com,US
 DOMAIN,np-edge.itunes.apple.com,US
 # HLS 播放清单与视频流
@@ -59,12 +71,12 @@ DOMAIN,hls-amt.itunes.apple.com,US
 DOMAIN,hls-svod.itunes.apple.com,US
 DOMAIN,hls-svod-aoc.itunes.apple.com,US
 # 9 月 25 日播放时视频分片已走美国1，但同一会话里的其余接口分散在台湾2 和直连，出口不一致，视频加载不出来
-# amp-api.videos.apple.com 是视频内容接口，cma2、pd、bookkeeper（播放进度）与 bag（服务端点配置）此前都不在规则里
+# amp-api.videos.apple.com 是视频内容接口，cma2、pd、bookkeeper（播放进度）此前都不在规则里
+# 播放鉴权 play 与服务端点配置 bag 曾一并钉在这里，因与 Apple Music 共用、拖慢音乐开播，已改到上面的 Apple Music 段直连；若 Apple TV+ 再次加载不出来，先看这两个域名
 DOMAIN-SUFFIX,videos.apple.com,US
 DOMAIN,cma2.itunes.apple.com,US
 DOMAIN,pd.itunes.apple.com,US
 DOMAIN,bookkeeper.itunes.apple.com,US
-DOMAIN,bag.itunes.apple.com,US
 # 订阅权益校验走账号专属的 pNN-buy.itunes.apple.com，编号因账号而异，只能用关键字命中；App Store 的购买请求也会随之走 US，下载不受影响
 DOMAIN-KEYWORD,-buy.itunes.apple.com,US
 # 体育赛事比分与直播信息

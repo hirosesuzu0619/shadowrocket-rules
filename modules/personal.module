@@ -136,6 +136,9 @@ DOMAIN-SUFFIX,meta.ai,US
 DOMAIN-SUFFIX,meta.com,US
 # hatch.metaaivm.com 是 Meta AI 的后端，不在上面两个后缀之下，此前落到 FINAL 的台湾出口
 DOMAIN-SUFFIX,metaaivm.com,US
+# 10 月 1 日打开 Meta AI（Muse）时，hatch-api、graph.meta.ai 等都走了美国1，唯独 graph.facebook.com 被基础配置的 facebook 关键字带去了香港1；它是 Meta 账号登录与数据上报的公共接口，出口需与 meta.ai 一致
+# Facebook、Instagram 等 Meta 系 App 发往这个域名的请求也会一并走 US
+DOMAIN,graph.facebook.com,US
 
 # —— Claude ——
 # 此前落在别的模块的「美国节点」组，在美国1/美国4之间切换；status.claude.com 更是走了 PROXY 的台湾出口

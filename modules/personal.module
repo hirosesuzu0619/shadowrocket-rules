@@ -139,10 +139,10 @@ DOMAIN-SUFFIX,metaaivm.com,US
 
 # —— Claude ——
 # 此前落在别的模块的「美国节点」组，在美国1/美国4之间切换；status.claude.com 更是走了 PROXY 的台湾出口
-DOMAIN-SUFFIX,claude.ai,US
-DOMAIN-SUFFIX,claude.com,US
+# Claude 的域名分散在 claude.ai、claude.com、claudeusercontent.com（artifact 内容）、claude.site（公开分享）、claudemcpcontent.com 等多个根域，按后缀逐个列容易漏，改用关键字统一命中
+# 代价是名字里带 claude 的其他网站也会走 US，目前没有发现常用的此类域名
+DOMAIN-KEYWORD,claude,US
 DOMAIN-SUFFIX,anthropic.com,US
-DOMAIN-SUFFIX,claudeusercontent.com,US
 # Cloudflare 人机验证，出口需与 claude.ai 一致，否则容易反复弹验证；用精确匹配，避免牵动 apple-relay.cloudflare.com 等其他子域
 DOMAIN,challenges.cloudflare.com,US
 # statsig 特性开关平台，Claude 客户端启动时拉取

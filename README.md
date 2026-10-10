@@ -58,7 +58,7 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 
 10 月 10 日把设备上一批历史遗留的手动规则并进了模块。它们原本都指向 `PROXY`，也就是首页当前所选的节点，出口随首页切换。其中与模块重复的 Siri、隐私中继、datadog、Bybit 条目，以及 Telegram 这类不写规则也会走代理的条目直接作废；其余按服务所需地区落位：Bybit 的资源与备用域名（byabcde、bybdc6、byd3c3、byapps）随主域走 `BYBIT_TW`；OKX 钉到 `SG`，因为 10 月 10 日的日志里它走了美国节点，而 OKX 不对美国用户开放；Schwab、Monarch、Kubera、Red Pocket、Origin、T-Mobile 这些美国金融与运营商服务走 `US`；Wise、N26、Gekkard、Kast、Moment、Ekubo、Vesu、Ready（原 Argent）、Dune、Coca 所需地区尚未确定，暂走 `SG`；luluwu.org、weijingle.com 两个国内站点显式 `DIRECT`，因为 Nextin 模板没有国内域名名单，不写就会走代理。并入后设备上的那批手动规则可以全部删除。
 
-模块开头原本有一条 `AND,((PROTOCOL,UDP),(DST-PORT,443)),REJECT-NO-DROP`，拒绝 UDP 443 也就是 QUIC 流量。10 月 10 日随分流逻辑一起改成与 Nextin 一致，这条和 Claude 的两条放行例外都已删除，QUIC 照常放行，下面是当初加它的理由，留作参考。国内运营商对出境 UDP 限速和丢包都很重，QUIC 经节点的 UDP 转发时，X 这类 App 从后台切回来重新建连容易卡住，要等超时才退回 TCP；直接拒绝后 App 立即改用 TCP。这条必须排在所有域名规则之前，否则 x.com 等流量会先被后面的规则带走。国内直连的 App 也会随之改用 TCP，影响很小。唯一的例外是 Claude：在 Claude 上传图片仍比 Nextin Hub 生成的模板慢，而 Nextin 不拦 QUIC，上传可能走了 HTTP/3，所以在拒绝规则之前加了两条 `AND` 规则，让名字带 claude 的域名和 anthropic.com 的 UDP 443 走 `US`，作为对比试验。节点不支持 UDP 时，`udp-policy-not-supported-behaviour = REJECT` 会直接拒绝，Claude 照样立即退回 TCP。若放开 QUIC 后 X 这类 App 从后台切回时又出现卡住，可以把拒绝规则加回模块开头。
+规则的开头是 `AND,((PROTOCOL,UDP),(DST-PORT,443)),REJECT-NO-DROP`，拒绝 UDP 443 也就是 QUIC 流量。国内运营商对出境 UDP 限速和丢包都很重，QUIC 经节点的 UDP 转发时，X 这类 App 从后台切回来重新建连容易卡住，要等超时才退回 TCP；直接拒绝后 App 立即改用 TCP。这条必须排在所有域名规则之前，否则 x.com 等流量会先被后面的规则带走。国内直连的 App 也会随之改用 TCP，影响很小。唯一的例外是 Claude：在 Claude 上传图片仍比 Nextin Hub 生成的模板慢，而 Nextin 不拦 QUIC，上传可能走了 HTTP/3，所以在拒绝规则之前加了两条 `AND` 规则，让名字带 claude 的域名和 anthropic.com 的 UDP 443 走 `US`，作为对比试验。节点不支持 UDP 时，`udp-policy-not-supported-behaviour = REJECT` 会直接拒绝，Claude 照样立即退回 TCP。若试下来没有变快，删掉这两条即可。10 月 10 日随分流逻辑改成与 Nextin 一致时曾把拒绝规则和这两条例外一并删除、放开 QUIC，试下来仍不如 Nextin 快，已原样改回。
 
 ### URL 重写
 
@@ -70,7 +70,7 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 
 模块里 Claude 主站的两条规则（`claude` 关键字与 `anthropic.com`）以及 OpenAI、Gemini 两段不搬，交给模板自带的 Anthropic、OpenAI、Gemini 分组处理。最初这些规则也一并并入、排在模板规则之前，Claude 就改走了个人的 `US` 组；两者虽然都是在美国节点里按延迟择优，但实际用下来还是想保持与纯 Nextin 模板完全相同的处理方式。Claude 段里其余的周边域名（Cloudflare 人机验证、statsig 特性开关、sentry、datadog、sift 遥测风控）照常并入，但策略改指模板的 Anthropic 分组：人机验证与风控都看来源 IP，`US` 与模板的 Anthropic 分组各自测速、可能选中不同的美国节点，指向同一个分组才能保证与主站同一出口，同时也不会被模板的追踪名单拦截。分组名由脚本从模板的 `GEOSITE,anthropic` 规则读取，Nextin 改名也不受影响；sentry、datadog 为多个 App 共用，其他 App 的上报也会一并走这个分组。
 
-搬运时有几处按 mihomo 的规矩做了调整。mihomo 用 Go 的正则，不支持否定前瞻，`MEXC_JP`、`BYBIT_TW` 里「排除倍率与信息节点」的写法拆成了 `filter` 与 `exclude-filter` 两项；测速超时从秒换算成毫秒。模块里拒绝 QUIC 的规则已经删除；以后若加回来，脚本也不会搬，因为 Nextin 模板本身不拦 QUIC。没有任何规则引用的 `JP` 组不搬。URL 重写与 `[MITM]` 在 mihomo 配置里没有对应功能，`google.cn` 跳转在这份配置下不生效。
+搬运时有几处按 mihomo 的规矩做了调整。mihomo 用 Go 的正则，不支持否定前瞻，`MEXC_JP`、`BYBIT_TW` 里「排除倍率与信息节点」的写法拆成了 `filter` 与 `exclude-filter` 两项；测速超时从秒换算成毫秒。模块开头拒绝 QUIC 的规则以及 Claude 的放行例外没有搬，Nextin 模板本身不拦 QUIC，这正是它与 `base.conf` 的差别之一。没有任何规则引用的 `JP` 组不搬。URL 重写与 `[MITM]` 在 mihomo 配置里没有对应功能，`google.cn` 跳转在这份配置下不生效。
 
 兜底的 `MATCH` 改成了 `DIRECT`，即未命中任何规则的连接一律直连，做法是把 `tools/nextin.url` 里的 `matchTarget` 由 `proxy` 改为 `direct`，由 Nextin Hub 生成，模板其余内容与原先完全相同。此前 `MATCH` 指向代理，而模板的国内 IP 规则都带 `no-resolve`，只能命中直接连 IP 的请求，按域名发起的国内请求一律落到 `MATCH` 走代理，B 站接口与图片就是这样绕了境外节点；当时的补救是在 `MATCH` 之前追加 `GEOSITE,cn,DIRECT`。改为直连兜底后这条已经多余，脚本只在模板的 `MATCH` 仍指向代理时才追加它。代价是境外站点要靠规则命中才走代理：不在被墙名单、AI 名单或个人规则里的境外站点会直连，名单漏掉的被墙站点会打不开，未被墙的境外站点也可能变慢。遇到这种情况把域名补进 `personal.module` 并重新生成；想退回原来的做法，把 `matchTarget` 改回 `proxy` 再运行脚本即可。
 

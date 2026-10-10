@@ -92,7 +92,8 @@ var RULES = [
   "GEOSITE,category-ai-!cn,🚀 节点选择",
   "RULE-SET,tokyo-cn-ip,DIRECT,no-resolve",
   "GEOSITE,gfw,🚀 节点选择",
-  "MATCH,DIRECT"
+  "GEOSITE,cn,DIRECT",
+  "MATCH,🚀 节点选择"
 ];
 
 function main(config) {

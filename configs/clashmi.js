@@ -9886,7 +9886,8 @@ var RULES = [
   "IP-CIDR6,2c0f:f7a8:8211::/48,DIRECT,no-resolve",
   "IP-CIDR6,2c0f:f7a8:9041::/48,DIRECT,no-resolve",
   "GEOSITE,gfw,GF GFW 列表",
-  "MATCH,DIRECT"
+  "GEOSITE,cn,DIRECT",
+  "MATCH,🚀 节点选择"
 ];
 
 function main(config) {

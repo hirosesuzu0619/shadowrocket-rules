@@ -68,6 +68,8 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 
 搬运时有几处按 mihomo 的规矩做了调整。mihomo 用 Go 的正则，不支持否定前瞻，`MEXC_JP`、`BYBIT_TW` 里「排除倍率与信息节点」的写法拆成了 `filter` 与 `exclude-filter` 两项；测速超时从秒换算成毫秒。模块开头拒绝 QUIC 的规则以及 Claude 的放行例外没有搬，Nextin 模板本身不拦 QUIC，这正是它与 `base.conf` 的差别之一。没有任何规则引用的 `JP` 组不搬。URL 重写与 `[MITM]` 在 mihomo 配置里没有对应功能，`google.cn` 跳转在这份配置下不生效。
 
+此外在模板兜底的 `MATCH` 之前追加了一条 `GEOSITE,cn,DIRECT`。模板的国内 IP 规则都带 `no-resolve`，只能命中直接连 IP 的请求；按域名发起的请求不做解析，国内域名一律落到 `MATCH` 走代理。B 站就是典型：直接连 CDN IP 的视频流直连，接口与图片却绕境外节点，既慢又费流量，还可能被按海外用户处理。补上这条后国内域名直连；它排在被墙名单之后，被墙域名仍先走代理，境外网站不受影响。
+
 文件由 `tools/build_nextin.py` 生成，不要手工编辑。改了 `personal.module` 之后运行 `python3 tools/build_nextin.py`，脚本会按 `tools/nextin.url` 里的地址重新下载模板并重新合并；想换 Nextin 的规则组合，就在 Nextin Hub 重新生成链接，替换 `tools/nextin.url` 后再运行。生成后可用 mihomo 自带的检查确认无误：`mihomo -d <目录> -t -f configs/nextin.yaml`。
 
 使用时在 mihomo 内核的客户端里，按原来使用 Nextin 模板的方式填入 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/nextin.yaml`。模板里 `proxies` 为空、各组用 `include-all-proxies` 吸收全部节点，订阅节点由客户端合并进来，文件里不出现任何节点或订阅链接。

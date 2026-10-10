@@ -73,3 +73,11 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 文件由 `tools/build_nextin.py` 生成，不要手工编辑。改了 `personal.module` 之后运行 `python3 tools/build_nextin.py`，脚本会按 `tools/nextin.url` 里的地址重新下载模板并重新合并；想换 Nextin 的规则组合，就在 Nextin Hub 重新生成链接，替换 `tools/nextin.url` 后再运行。生成后可用 mihomo 自带的检查确认无误：`mihomo -d <目录> -t -f configs/nextin.yaml`。
 
 使用时在 mihomo 内核的客户端里，按原来使用 Nextin 模板的方式填入 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/nextin.yaml`。模板里 `proxies` 为空、各组用 `include-all-proxies` 吸收全部节点，订阅节点由客户端合并进来，文件里不出现任何节点或订阅链接。
+
+## configs/clashmi.js
+
+`configs/nextin.yaml` 的 Clash Mi 版本，内容相同，形式是 Clash Mi 的 JS 覆写脚本。Clash Mi 不像 Nextin 那样把订阅节点注入模板，而是先加载机场订阅，再用覆写去改它；`nextin.yaml` 的 `proxies` 是空的，直接当覆写用可能把订阅节点一并清空。这个脚本只把订阅里的 `proxy-groups` 与 `rules` 整体换成 `nextin.yaml` 的，节点、DNS、TUN 等其余设置保持订阅原样。各组的 `include-all-proxies` 换成了 `include-all`，机场若用 `proxy-providers` 下发节点也能被各组吸收。
+
+文件同样由 `tools/build_nextin.py` 生成，运行一次脚本会同时更新两份文件（需要 PyYAML）。生成后可以把脚本套在一份订阅配置上，再交给 mihomo 检查：10 月 10 日用 mihomo 1.19.15 和一份模拟订阅试过，配置检查通过，各组按地区筛选正确，订阅原有的分组被替换，流量信息节点被排除。
+
+在 Clash Mi 里的用法：进入「核心设置 → 覆写」，点右上角加号，选「添加配置链接」，类型选 JS，链接填 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/clashmi.js`；然后在「我的配置」里编辑机场订阅，在自定义覆写配置中选中它，更新订阅并重新连接。不同版本的菜单名称可能略有差异。「分流模板」里的规则提供者、规则模板、代理组模板是 Clash Mi 自带的另一套分流方式，用这个脚本就不需要再填。

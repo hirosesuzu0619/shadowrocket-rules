@@ -9,7 +9,7 @@
 同时把结果中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
 
 另外生成只有东京静态住宅 IP 时用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
-所有代理分组合并成一个。
+所有代理分组合并成一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -69,6 +69,15 @@ TOKYO_GROUPS = f"""proxy-groups:
     interval: 300
 """
 BUILTIN = {"DIRECT", "REJECT", "REJECT-DROP", "PASS"}
+# 东京版的兜底走代理，未命中的境外站点也从东京出去。只靠 GEOSITE,cn 识别国内域名时，apple.com、icloud.com、微软更新、
+# Akamai 这类国内有 CDN 节点的境外服务都不在名单里，会全部挤上住宅线路，与 X 等服务抢带宽；所以再引用一次国内 IP 规则集、
+# 不带 no-resolve：名单外的域名先在本机解析，落在国内 IP 段的直连。最终直连的域名本来就要在本机解析，结果会被缓存复用，
+# 只有走代理的境外域名多一次本地查询。前面的规则集仍带 no-resolve，只拦直接连 IP 的请求，被墙名单也排在前面
+TOKYO_TAIL = f"""  # 兜底 · 东京版追加：国内域名直连，其余域名在本机解析，落在国内 IP 段的也直连，剩下的走代理
+  - "GEOSITE,cn,DIRECT"
+  - "RULE-SET,tokyo-cn-ip,DIRECT"
+  - "MATCH,{TOKYO_PROXY}"
+"""
 # Clash Verge 的扩展脚本存在本地，不能按链接订阅。所以东京版把常改的个人规则与庞大的国内 IP 段放进 rules/tokyo/ 下的规则集，
 # 由 mihomo 按 raw 链接定时下载，脚本本身只剩分组与规则骨架，改了 personal.module 也不必重新粘贴
 # 个人规则按策略拆成三个规则集，依次匹配拒绝、直连、代理；模块里直连与拒绝的条目本来就写在同类代理条目之前，顺序不受影响
@@ -170,12 +179,18 @@ def tokyo(body):
     """把合并后的配置改成东京版，返回 (配置正文, {规则集文件名: 内容})。
 
     代理组换成 TOKYO_GROUPS；内置策略（DIRECT、REJECT 等）不动，凡是指向代理分组的一律改指 TOKYO_PROXY。个人规则与国内 IP 段移进规则集，原位置换成 RULE-SET。
+    模板的 MATCH 换成 TOKYO_TAIL；模板兜底指向代理时 body 里已有的那条 GEOSITE,cn 一并去掉，免得重复。
     """
     start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
     groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
     personal = {k: [] for k in TOKYO_SETS}
     cn_ip, out, section = [], [], None
     for line in body[end:].splitlines(keepends=True):
+        if line in CN_DIRECT.splitlines(keepends=True):
+            continue
+        if MATCH_RE.fullmatch(line):
+            out.append(TOKYO_TAIL)
+            continue
         m = re.match(r"  # (.+)", line)
         if m:
             name = m.group(1)
@@ -209,6 +224,8 @@ def tokyo(body):
         out.append(line)
     if not cn_ip:
         raise SystemExit("模板里找不到中国 IP 段")
+    if TOKYO_TAIL not in out:
+        raise SystemExit("模板里找不到 MATCH 规则")
 
     lists = {f"{v}.list": personal[k] for k, v in TOKYO_SETS.items()}
     lists["cn-ip.list"] = cn_ip
@@ -310,7 +327,8 @@ def main():
         "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，供只有东京主、备两个入口节点时使用。\n"
         "# 规则的条目与 nextin.yaml 相同，只是代理分组合并成一个：原先指向 US、MEXC_JP、BYBIT_TW、SG 与模板各 AI 分组的规则一律走「🚀 节点选择」。\n"
         "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、代理三个规则集。\n"
-    ) + header.splitlines(keepends=True)[-1]
+        "# 兜底的 MATCH 走代理，之前先让国内域名（GEOSITE,cn）直连，再把其余域名在本机解析、落在国内 IP 段的也直连，减少挤上住宅线路的流量。\n"
+    )
     tokyo_body, lists = tokyo(body)
     out = tokyo_header + tokyo_body
     TOKYO.write_text(out, encoding="utf-8")

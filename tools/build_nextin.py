@@ -5,6 +5,7 @@
 - 个人分组追加在 proxy-groups 末尾；
 - 个人规则插在私有 IP 之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致。
 模板兜底的 MATCH 若指向代理，还会在它之前加一条 GEOSITE,cn,DIRECT，让国内域名直连；MATCH 已是 DIRECT 时不加。
+另外关闭 IPv6：顶层加 ipv6: false，个人规则最前面再加一条拒绝全部 IPv6 地址的规则，与 base.conf 的 ipv6 = false 对应。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -24,6 +25,12 @@ GROUPS_ANCHOR = "\nrules:\n"
 # 模板的国内 IP 规则都带 no-resolve，按域名发起的请求匹配不上，B 站接口这类国内域名会落到 MATCH 走代理；
 # 在 MATCH 之前补一条国内域名直连，排在被墙名单之后，境外域名不受影响；MATCH 本身已是 DIRECT 时这条多余，不加
 CN_DIRECT = '  # 国内域名直连（个人追加）\n  - "GEOSITE,cn,DIRECT"\n'
+# 关闭 IPv6，与 base.conf 的 ipv6 = false 对应：微信在有 IPv6 的网络下优先走 IPv6，客户端处理不好时会连不上。
+# 客户端可能用自己的设置覆盖顶层的 ipv6，所以规则里再拒绝全部 IPv6 地址，让 App 立即改用 IPv4；
+# 这条排在私有地址之后，局域网与链路本地的 IPv6 仍然直连
+IPV6_ANCHOR = "\nproxies:"
+IPV6_OFF = "\nipv6: false\n"
+IPV6_REJECT = ['  # 关闭 IPv6（个人追加）', '  - "IP-CIDR6,::/0,REJECT,no-resolve"']
 MATCH_RE = re.compile(r'^  - "MATCH,([^"]*)"\n', re.M)
 # 这几段交给模板自带的 OpenAI、Anthropic、Gemini 分组处理，速度与纯 Nextin 模板一致
 # 值为 None 表示整段不搬；Claude 段只去掉主站两条，其余见下方 FOLLOW_GEOSITE
@@ -146,11 +153,13 @@ def main():
         raise SystemExit(f"规则引用了未定义的分组：{missing}")
 
     assert template.count(RULES_ANCHOR) == 1 and template.count(GROUPS_ANCHOR) == 1
+    assert template.count(IPV6_ANCHOR) == 1 and not re.search(r"^ipv6:", template, re.M)
     assert len(MATCH_RE.findall(template)) == 1
     match_direct = MATCH_RE.search(template).group(1) == "DIRECT"
     header = (
         "# 本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，模板原有内容未改动。\n"
         "# 个人规则排在私有地址之后、广告拦截之前；模块的 URL 重写与 MITM 在 mihomo 里没有对应功能，未搬入。\n"
+        "# 关闭 IPv6：顶层 ipv6: false，个人规则最前面拒绝全部 IPv6 地址，App 会立即改用 IPv4。\n"
         "# Claude 主站（claude 关键字与 anthropic.com）以及 OpenAI、Gemini 两段未搬入，由模板自带的 Anthropic、OpenAI、Gemini 分组处理；Claude 的人机验证、statsig 与遥测风控域名改指模板的 Anthropic 分组，与主站同一出口。\n"
     ) + (
         "# 模板兜底的 MATCH 为 DIRECT：未命中任何规则的连接一律直连。\n"
@@ -159,7 +168,8 @@ def main():
     )
     out = header + template
     out = out.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)
-    out = out.replace(RULES_ANCHOR, "\n".join(rule_lines) + "\n" + RULES_ANCHOR, 1)
+    out = out.replace(RULES_ANCHOR, "\n".join(IPV6_REJECT + rule_lines) + "\n" + RULES_ANCHOR, 1)
+    out = out.replace(IPV6_ANCHOR, IPV6_OFF + IPV6_ANCHOR, 1)
     if not match_direct:
         out = MATCH_RE.sub(lambda m: CN_DIRECT + m.group(0), out, count=1)
     OUTPUT.write_text(out, encoding="utf-8")

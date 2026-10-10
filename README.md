@@ -62,7 +62,7 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 
 在 Nextin Hub 生成的 mihomo（Clash Meta）模板之上，并入 `personal.module` 的分组与规则。实际使用中，同一批节点下这份模板比 `base.conf` 加模块明显更快，尤其是在 Claude 上传图片时，所以直接以它为底，把个人规则搬进去。模板原有的分组、规则与顺序一行未改，只在两处插入内容：`US`、`MEXC_JP`、`BYBIT_TW`、`SG` 四个个人分组追加在 `proxy-groups` 末尾；个人规则插在私有地址之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致，所以 MEXC 的推送与归因这类域名不会先被模板的广告与追踪名单拦掉。
 
-模块里的 Claude、OpenAI、Gemini 三段不搬，交给模板自带的 Anthropic、OpenAI、Gemini 分组处理。最初这三段也一并并入、排在模板规则之前，Claude 就改走了个人的 `US` 组；两者虽然都是在美国节点里按延迟择优，但实际用下来还是想保持与纯 Nextin 模板完全相同的处理方式。代价是这三段里额外列出的周边域名（Cloudflare 人机验证、statsig 特性开关、sentry、datadog、sift 遥测风控）不再固定走 `US`：模板的 anthropic 名单没有覆盖到的，按模板自己的规则走，可能被追踪名单拦截，或落到模板的默认出口。
+模块里 Claude 主站的两条规则（`claude` 关键字与 `anthropic.com`）以及 OpenAI、Gemini 两段不搬，交给模板自带的 Anthropic、OpenAI、Gemini 分组处理。最初这些规则也一并并入、排在模板规则之前，Claude 就改走了个人的 `US` 组；两者虽然都是在美国节点里按延迟择优，但实际用下来还是想保持与纯 Nextin 模板完全相同的处理方式。Claude 段里其余的周边域名（Cloudflare 人机验证、statsig 特性开关、sentry、datadog、sift 遥测风控）照常并入、固定走 `US`，以免被模板的追踪名单拦截或落到模板的默认出口，与主站出口不一致。
 
 搬运时有几处按 mihomo 的规矩做了调整。mihomo 用 Go 的正则，不支持否定前瞻，`MEXC_JP`、`BYBIT_TW` 里「排除倍率与信息节点」的写法拆成了 `filter` 与 `exclude-filter` 两项；测速超时从秒换算成毫秒。模块开头拒绝 QUIC 的规则以及 Claude 的放行例外没有搬，Nextin 模板本身不拦 QUIC，这正是它与 `base.conf` 的差别之一。没有任何规则引用的 `JP` 组不搬。URL 重写与 `[MITM]` 在 mihomo 配置里没有对应功能，`google.cn` 跳转在这份配置下不生效。
 

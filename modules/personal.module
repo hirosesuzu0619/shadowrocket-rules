@@ -3,16 +3,15 @@
 
 [Proxy Group]
 # 不写 policy-path，正则即作用于 Shadowrocket 当前的全部节点（含订阅拉取的节点）。
-# US 用 url-test：按延迟自动择优，tolerance = 50 让延迟相差不到 50 毫秒时不切换。X、AI 服务都走这里，fallback 固定用列表里第一个美国节点，那个节点慢时它们全都跟着慢。
-# SG / JP 用 fallback：按节点列表顺序固定使用第一个可用节点，只有它测速失败时才顺延到下一个，不会因延迟波动来回切换出口。
-# MEXC_JP 用 select，候选是全部日本节点：默认用列表里第一个，可在 App 里对该组测速后手动点选更快的，选定后出口固定，不会自动切换。
-# BYBIT_TW 用 select 且正则只匹配单个节点，出口完全固定；Bybit 已限制日本用户，所以没有跟 MEXC 一起改到日本。换节点改该行正则里的节点名。
+# 全部分组都用 url-test：按延迟自动择优，tolerance = 50 让延迟相差不到 50 毫秒时不切换，每 300 秒测速一次。
+# 代价是出口会在延迟接近的节点之间偶尔切换；交易所也不例外，MEXC、Bybit 可能看到同一账号来自多个地址，触发风控或要求重新验证。
+# Bybit 已限制日本用户，所以 BYBIT_TW 在台湾节点里选，没有跟 MEXC 一起改到日本。
 # 注释一律单独成行：写在策略组行尾的注释会被并进正则，组内一个节点都匹配不到，引用它的规则会退回首页所选节点。
 US = url-test, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 300, tolerance = 50, timeout = 5
-MEXC_JP = select, policy-regex-filter = (?i)^(?!.*(倍|剩余|距离|套餐|到期|官网)).*(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵)
-BYBIT_TW = select, policy-regex-filter = (?i)^台湾1$
-SG = fallback, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
-JP = fallback, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
+MEXC_JP = url-test, policy-regex-filter = (?i)^(?!.*(倍|剩余|距离|套餐|到期|官网)).*(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 300, tolerance = 50, timeout = 5
+BYBIT_TW = url-test, policy-regex-filter = (?i)^(?!.*(倍|剩余|距离|套餐|到期|官网)).*(台湾|台灣|台北|新北|彰化|Taiwan|\bTW\b|🇹🇼), url = http://www.gstatic.com/generate_204, interval = 300, tolerance = 50, timeout = 5
+SG = url-test, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 300, tolerance = 50, timeout = 5
+JP = url-test, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 300, tolerance = 50, timeout = 5
 
 [Rule]
 # —— 屏蔽 QUIC ——
@@ -122,7 +121,7 @@ DOMAIN,molor-app-performance-project.ap-southeast-1.log.aliyuncs.com,MEXC_JP
 DOMAIN-SUFFIX,turingfraud.net,MEXC_JP
 
 # —— Bybit ——
-# api3.bybit.biz 后台心跳此前落在别的模块的通用 PROXY 策略下，出口是台湾2而非本模块钉死的节点，与 MEXC 同样需要固定出口
+# api3.bybit.biz 后台心跳此前落在别的模块的通用 PROXY 策略下，出口是台湾2而非本模块指定的分组，与 MEXC 同样需要固定出口
 DOMAIN-SUFFIX,bybit.biz,BYBIT_TW
 DOMAIN-SUFFIX,bybit.com,BYBIT_TW
 DOMAIN-SUFFIX,bybitglobal.com,BYBIT_TW

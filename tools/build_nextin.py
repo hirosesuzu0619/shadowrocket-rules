@@ -8,6 +8,9 @@
 
 同时把结果中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
 
+另外生成只有东京静态住宅 IP 时用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
+所有代理分组合并成一个，按账号所在地走美国的几段改为直连。
+
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
 import json
@@ -23,6 +26,8 @@ MODULE = ROOT / "modules" / "personal.module"
 OUTPUT = ROOT / "configs" / "nextin.yaml"
 CLASHMI = ROOT / "configs" / "clashmi.js"
 URL_FILE = ROOT / "tools" / "nextin.url"
+TOKYO = ROOT / "configs" / "tokyo.yaml"
+TOKYO_JS = ROOT / "configs" / "tokyo.js"
 
 # 广告拦截之前插入个人规则
 RULES_ANCHOR = "  # 广告拦截 · Nextin bundled MRS\n"
@@ -41,6 +46,29 @@ SKIP_RULES = {
 # 这些分段里剩下的规则改指模板里某条 GEOSITE 规则的目标分组：Claude 的人机验证、statsig 与遥测风控要与主站同一出口，
 # 所以跟随模板的 Anthropic 分组；分组名从模板读取，Nextin 改名也不受影响
 FOLLOW_GEOSITE = {"Claude": "anthropic"}
+
+# 东京版只有两个节点：主入口与备入口，出口是同一个静态住宅 IP。所有代理规则都指向「🚀 节点选择」，
+# 它默认用「🛡️ 故障转移」，按订阅里的节点顺序先用主入口，主入口不通才换备入口；也可以手动选定某个入口
+TOKYO_PROXY = "🚀 节点选择"
+INFO_NODES = "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)"
+TOKYO_GROUPS = f"""proxy-groups:
+  - name: "{TOKYO_PROXY}"
+    type: select
+    include-all-proxies: true
+    exclude-filter: "{INFO_NODES}"
+    proxies:
+      - "🛡️ 故障转移"
+      - DIRECT
+  - name: "🛡️ 故障转移"
+    type: fallback
+    include-all-proxies: true
+    exclude-filter: "{INFO_NODES}"
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+"""
+# 这几段原本按账号所在地钉在 US。东京版没有美国出口，改为直连，交给设备自己的美国漫游流量
+TOKYO_US_HOME = {"希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商"}
+BUILTIN = {"DIRECT", "REJECT", "REJECT-DROP", "PASS"}
 
 
 def load_template(src):
@@ -95,11 +123,12 @@ def convert_group(line):
     return name, out
 
 
-def write_clashmi(text):
-    """导出 Clash Mi 的 JS 覆写：订阅的节点、DNS 等设置原样保留，只换掉代理组与规则。
+def write_js(text, path, intro):
+    """导出 JS 覆写：订阅的节点、DNS 等设置原样保留，只换掉代理组与规则。
 
     nextin.yaml 里的 proxies 是空的，直接当 YAML 覆写可能把订阅节点一并清空，所以改用脚本只替换这两项。
     include-all-proxies 换成 include-all，订阅若用 proxy-providers 下发节点也能纳入各组。
+    Clash Mi 与 Clash Verge 的扩展脚本都调用 main(config)，同一份脚本两边通用。
     """
     conf = yaml.safe_load(text)
     groups = conf["proxy-groups"]
@@ -107,9 +136,8 @@ def write_clashmi(text):
         if g.pop("include-all-proxies", False):
             g["include-all"] = True
     js = (
-        "// 本文件由 tools/build_nextin.py 从 configs/nextin.yaml 生成，不要手工编辑。\n"
-        "// Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 nextin.yaml 的。\n"
-        "var PROXY_GROUPS = " + json.dumps(groups, ensure_ascii=False, indent=2) + ";\n\n"
+        "".join(f"// {line}\n" for line in intro)
+        + "var PROXY_GROUPS = " + json.dumps(groups, ensure_ascii=False, indent=2) + ";\n\n"
         "var RULES = [\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in conf["rules"]) + "\n];\n\n"
         "function main(config) {\n"
         "  config[\"proxy-groups\"] = PROXY_GROUPS;\n"
@@ -117,8 +145,38 @@ def write_clashmi(text):
         "  return config;\n"
         "}\n"
     )
-    CLASHMI.write_text(js, encoding="utf-8")
-    print(f"wrote {CLASHMI.relative_to(ROOT)}: {len(groups)} groups, {len(conf['rules'])} rules")
+    path.write_text(js, encoding="utf-8")
+    print(f"wrote {path.relative_to(ROOT)}: {len(groups)} groups, {len(conf['rules'])} rules")
+
+
+def tokyo(body):
+    """把合并后的配置改成东京版：代理组换成 TOKYO_GROUPS，规则逐条改指向。
+
+    内置策略（DIRECT、REJECT 等）不动；TOKYO_US_HOME 几段改为 DIRECT；其余凡是指向代理分组的一律改指 TOKYO_PROXY。
+    """
+    start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
+    groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
+    out, section, seen = [], None, set()
+    for line in body[end:].splitlines(keepends=True):
+        m = re.match(r"  # (.+)", line)
+        if m:
+            name = m.group(1)
+            section = name.split(" · ", 1)[1] if name.startswith("个人规则 · ") else None
+            seen.add(section)
+        m = re.fullmatch(r'  - "(.+)"\n?', line)
+        if m:
+            parts = m.group(1).split(",")
+            # MATCH 只有两段，策略在第二段；其余规则在第三段
+            i = 1 if parts[0] == "MATCH" else 2
+            if parts[i] not in BUILTIN:
+                if parts[i] not in groups:
+                    raise SystemExit(f"规则引用了未定义的分组：{parts[i]}")
+                parts[i] = "DIRECT" if section in TOKYO_US_HOME else TOKYO_PROXY
+                line = f"  - {q(','.join(parts))}\n"
+        out.append(line)
+    if TOKYO_US_HOME - seen:
+        raise SystemExit(f"模块里找不到这些分段：{TOKYO_US_HOME - seen}")
+    return body[:start] + TOKYO_GROUPS + "".join(out)
 
 
 def main():
@@ -189,14 +247,30 @@ def main():
         if match_direct else
         "# 兜底的 MATCH 之前追加了 GEOSITE,cn,DIRECT：模板的国内 IP 规则带 no-resolve，不加这条时国内域名会走代理。\n"
     )
-    out = header + template
-    out = out.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)
-    out = out.replace(RULES_ANCHOR, "\n".join(rule_lines) + "\n" + RULES_ANCHOR, 1)
+    body = template.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)
+    body = body.replace(RULES_ANCHOR, "\n".join(rule_lines) + "\n" + RULES_ANCHOR, 1)
     if not match_direct:
-        out = MATCH_RE.sub(lambda m: CN_DIRECT + m.group(0), out, count=1)
+        body = MATCH_RE.sub(lambda m: CN_DIRECT + m.group(0), body, count=1)
+    out = header + body
     OUTPUT.write_text(out, encoding="utf-8")
     print(f"wrote {OUTPUT.relative_to(ROOT)}: {len(names)} groups, {sum(1 for l in rule_lines if l.startswith('  - '))} rules")
-    write_clashmi(out)
+    write_js(out, CLASHMI, [
+        "本文件由 tools/build_nextin.py 从 configs/nextin.yaml 生成，不要手工编辑。",
+        "Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 nextin.yaml 的。",
+    ])
+
+    tokyo_header = (
+        "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，供只有东京主、备两个入口节点时使用。\n"
+        "# 规则的条目与顺序和 nextin.yaml 相同，只是代理分组合并成一个：原先指向 US、MEXC_JP、BYBIT_TW、SG 与模板各 AI 分组的规则一律走「🚀 节点选择」。\n"
+        "# 希尔顿、Kraken、Kalshi、Equifax 与美国金融运营商几段原本按账号所在地走 US，这里改为直连，交给设备自己的美国漫游流量。\n"
+    ) + header.splitlines(keepends=True)[-1]
+    out = tokyo_header + tokyo(body)
+    TOKYO.write_text(out, encoding="utf-8")
+    print(f"wrote {TOKYO.relative_to(ROOT)}")
+    write_js(out, TOKYO_JS, [
+        "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
+        "Clash Verge 的扩展脚本：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 tokyo.yaml 的。",
+    ])
 
 
 if __name__ == "__main__":

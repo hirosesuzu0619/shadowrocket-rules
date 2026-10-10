@@ -6,16 +6,22 @@
 - 个人规则插在私有 IP 之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致。
 模板兜底的 MATCH 若指向代理，还会在它之前加一条 GEOSITE,cn,DIRECT，让国内域名直连；MATCH 已是 DIRECT 时不加。
 
+同时把结果中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
+
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
+import json
 import pathlib
 import re
 import sys
 import urllib.request
 
+import yaml
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MODULE = ROOT / "modules" / "personal.module"
 OUTPUT = ROOT / "configs" / "nextin.yaml"
+CLASHMI = ROOT / "configs" / "clashmi.js"
 URL_FILE = ROOT / "tools" / "nextin.url"
 
 # 广告拦截之前插入个人规则
@@ -87,6 +93,32 @@ def convert_group(line):
             out.append(f"    tolerance: {opts['tolerance']}")
         out.append(f"    timeout: {int(opts.get('timeout', '5')) * 1000}")
     return name, out
+
+
+def write_clashmi(text):
+    """导出 Clash Mi 的 JS 覆写：订阅的节点、DNS 等设置原样保留，只换掉代理组与规则。
+
+    nextin.yaml 里的 proxies 是空的，直接当 YAML 覆写可能把订阅节点一并清空，所以改用脚本只替换这两项。
+    include-all-proxies 换成 include-all，订阅若用 proxy-providers 下发节点也能纳入各组。
+    """
+    conf = yaml.safe_load(text)
+    groups = conf["proxy-groups"]
+    for g in groups:
+        if g.pop("include-all-proxies", False):
+            g["include-all"] = True
+    js = (
+        "// 本文件由 tools/build_nextin.py 从 configs/nextin.yaml 生成，不要手工编辑。\n"
+        "// Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 nextin.yaml 的。\n"
+        "var PROXY_GROUPS = " + json.dumps(groups, ensure_ascii=False, indent=2) + ";\n\n"
+        "var RULES = [\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in conf["rules"]) + "\n];\n\n"
+        "function main(config) {\n"
+        "  config[\"proxy-groups\"] = PROXY_GROUPS;\n"
+        "  config[\"rules\"] = RULES;\n"
+        "  return config;\n"
+        "}\n"
+    )
+    CLASHMI.write_text(js, encoding="utf-8")
+    print(f"wrote {CLASHMI.relative_to(ROOT)}: {len(groups)} groups, {len(conf['rules'])} rules")
 
 
 def main():
@@ -164,6 +196,7 @@ def main():
         out = MATCH_RE.sub(lambda m: CN_DIRECT + m.group(0), out, count=1)
     OUTPUT.write_text(out, encoding="utf-8")
     print(f"wrote {OUTPUT.relative_to(ROOT)}: {len(names)} groups, {sum(1 for l in rule_lines if l.startswith('  - '))} rules")
+    write_clashmi(out)
 
 
 if __name__ == "__main__":

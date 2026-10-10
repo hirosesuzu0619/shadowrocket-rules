@@ -3,10 +3,11 @@
 
 [Proxy Group]
 # 不写 policy-path，正则即作用于 Shadowrocket 当前的全部节点（含订阅拉取的节点）。
-# US / SG / JP 用 fallback：按节点列表顺序固定使用第一个可用节点，只有它测速失败时才顺延到下一个，不会因延迟波动来回切换出口。
+# US 用 url-test：按延迟自动择优，tolerance = 50 让延迟相差不到 50 毫秒时不切换。X、AI 服务都走这里，fallback 固定用列表里第一个美国节点，那个节点慢时它们全都跟着慢。
+# SG / JP 用 fallback：按节点列表顺序固定使用第一个可用节点，只有它测速失败时才顺延到下一个，不会因延迟波动来回切换出口。
 # MEXC_TW 用 select 且正则只匹配单个节点，出口完全固定，供交易所类场景使用；换节点改该行正则里的节点名。
 # 注释一律单独成行：写在策略组行尾的注释会被并进正则，组内一个节点都匹配不到，引用它的规则会退回首页所选节点。
-US = fallback, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
+US = url-test, policy-regex-filter = (?i)(美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|凤凰城|鳳凰城|达拉斯|達拉斯|纽约|紐約|波特兰|波特蘭|拉斯维加斯|拉斯維加斯|United States|\bUSA?\b|🇺🇸), url = http://www.gstatic.com/generate_204, interval = 300, tolerance = 50, timeout = 5
 MEXC_TW = select, policy-regex-filter = (?i)^台湾1$
 SG = fallback, policy-regex-filter = (?i)(新加坡|狮城|獅城|星加坡|Singapore|\bSG\b|🇸🇬), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5
 JP = fallback, policy-regex-filter = (?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\bJP\b|🇯🇵), url = http://www.gstatic.com/generate_204, interval = 600, timeout = 5

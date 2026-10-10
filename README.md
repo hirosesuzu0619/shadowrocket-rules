@@ -68,7 +68,7 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 
 搬运时有几处按 mihomo 的规矩做了调整。mihomo 用 Go 的正则，不支持否定前瞻，`MEXC_JP`、`BYBIT_TW` 里「排除倍率与信息节点」的写法拆成了 `filter` 与 `exclude-filter` 两项；测速超时从秒换算成毫秒。模块开头拒绝 QUIC 的规则以及 Claude 的放行例外没有搬，Nextin 模板本身不拦 QUIC，这正是它与 `base.conf` 的差别之一。没有任何规则引用的 `JP` 组不搬。URL 重写与 `[MITM]` 在 mihomo 配置里没有对应功能，`google.cn` 跳转在这份配置下不生效。
 
-此外在模板兜底的 `MATCH` 之前追加了一条 `GEOSITE,cn,DIRECT`。模板的国内 IP 规则都带 `no-resolve`，只能命中直接连 IP 的请求；按域名发起的请求不做解析，国内域名一律落到 `MATCH` 走代理。B 站就是典型：直接连 CDN IP 的视频流直连，接口与图片却绕境外节点，既慢又费流量，还可能被按海外用户处理。补上这条后国内域名直连；它排在被墙名单之后，被墙域名仍先走代理，境外网站不受影响。
+兜底的 `MATCH` 改成了 `DIRECT`，即未命中任何规则的连接一律直连，做法是把 `tools/nextin.url` 里的 `matchTarget` 由 `proxy` 改为 `direct`，由 Nextin Hub 生成，模板其余内容与原先完全相同。此前 `MATCH` 指向代理，而模板的国内 IP 规则都带 `no-resolve`，只能命中直接连 IP 的请求，按域名发起的国内请求一律落到 `MATCH` 走代理，B 站接口与图片就是这样绕了境外节点；当时的补救是在 `MATCH` 之前追加 `GEOSITE,cn,DIRECT`。改为直连兜底后这条已经多余，脚本只在模板的 `MATCH` 仍指向代理时才追加它。代价是境外站点要靠规则命中才走代理：不在被墙名单、AI 名单或个人规则里的境外站点会直连，名单漏掉的被墙站点会打不开，未被墙的境外站点也可能变慢。遇到这种情况把域名补进 `personal.module` 并重新生成；想退回原来的做法，把 `matchTarget` 改回 `proxy` 再运行脚本即可。
 
 文件由 `tools/build_nextin.py` 生成，不要手工编辑。改了 `personal.module` 之后运行 `python3 tools/build_nextin.py`，脚本会按 `tools/nextin.url` 里的地址重新下载模板并重新合并；想换 Nextin 的规则组合，就在 Nextin Hub 重新生成链接，替换 `tools/nextin.url` 后再运行。生成后可用 mihomo 自带的检查确认无误：`mihomo -d <目录> -t -f configs/nextin.yaml`。
 

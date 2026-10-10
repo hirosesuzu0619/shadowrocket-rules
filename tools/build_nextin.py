@@ -28,6 +28,8 @@ CLASHMI = ROOT / "configs" / "clashmi.js"
 URL_FILE = ROOT / "tools" / "nextin.url"
 TOKYO = ROOT / "configs" / "tokyo.yaml"
 TOKYO_JS = ROOT / "configs" / "tokyo.js"
+TOKYO_RULES = ROOT / "rules" / "tokyo"
+RAW = "https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/"
 
 # 广告拦截之前插入个人规则
 RULES_ANCHOR = "  # 广告拦截 · Nextin bundled MRS\n"
@@ -69,6 +71,20 @@ TOKYO_GROUPS = f"""proxy-groups:
 # 这几段原本按账号所在地钉在 US。东京版没有美国出口，改为直连，交给设备自己的美国漫游流量
 TOKYO_US_HOME = {"希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商"}
 BUILTIN = {"DIRECT", "REJECT", "REJECT-DROP", "PASS"}
+# Clash Verge 的扩展脚本存在本地，不能按链接订阅。所以东京版把常改的个人规则与庞大的国内 IP 段放进 rules/tokyo/ 下的规则集，
+# 由 mihomo 按 raw 链接定时下载，脚本本身只剩分组与规则骨架，改了 personal.module 也不必重新粘贴
+# 个人规则按策略拆成三个规则集，依次匹配拒绝、直连、代理；模块里直连与拒绝的条目本来就写在同类代理条目之前，顺序不受影响
+TOKYO_SETS = {"REJECT": "reject", "DIRECT": "direct", TOKYO_PROXY: "proxy"}
+# 下载规则集也走代理：raw.githubusercontent.com 在国内直连经常不通
+TOKYO_PROVIDER = """  {name}:
+    type: http
+    behavior: {behavior}
+    format: text
+    url: "{url}"
+    path: ./rules/{name}.list
+    interval: {interval}
+    proxy: "{proxy}"
+"""
 
 
 def load_template(src):
@@ -132,16 +148,19 @@ def write_js(text, path, intro):
     """
     conf = yaml.safe_load(text)
     groups = conf["proxy-groups"]
+    providers = conf.get("rule-providers")
     for g in groups:
         if g.pop("include-all-proxies", False):
             g["include-all"] = True
     js = (
         "".join(f"// {line}\n" for line in intro)
         + "var PROXY_GROUPS = " + json.dumps(groups, ensure_ascii=False, indent=2) + ";\n\n"
-        "var RULES = [\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in conf["rules"]) + "\n];\n\n"
+        + ("var RULE_PROVIDERS = " + json.dumps(providers, ensure_ascii=False, indent=2) + ";\n\n" if providers else "")
+        + "var RULES = [\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in conf["rules"]) + "\n];\n\n"
         "function main(config) {\n"
         "  config[\"proxy-groups\"] = PROXY_GROUPS;\n"
-        "  config[\"rules\"] = RULES;\n"
+        + ("  config[\"rule-providers\"] = RULE_PROVIDERS;\n" if providers else "")
+        + "  config[\"rules\"] = RULES;\n"
         "  return config;\n"
         "}\n"
     )
@@ -150,19 +169,29 @@ def write_js(text, path, intro):
 
 
 def tokyo(body):
-    """把合并后的配置改成东京版：代理组换成 TOKYO_GROUPS，规则逐条改指向。
+    """把合并后的配置改成东京版，返回 (配置正文, {规则集文件名: 内容})。
 
-    内置策略（DIRECT、REJECT 等）不动；TOKYO_US_HOME 几段改为 DIRECT；其余凡是指向代理分组的一律改指 TOKYO_PROXY。
+    代理组换成 TOKYO_GROUPS；内置策略（DIRECT、REJECT 等）不动，TOKYO_US_HOME 几段改为 DIRECT，
+    其余凡是指向代理分组的一律改指 TOKYO_PROXY。个人规则与国内 IP 段移进规则集，原位置换成 RULE-SET。
     """
     start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
     groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
-    out, section, seen = [], None, set()
+    personal = {k: [] for k in TOKYO_SETS}
+    cn_ip, out, section, seen = [], [], None, set()
     for line in body[end:].splitlines(keepends=True):
         m = re.match(r"  # (.+)", line)
         if m:
             name = m.group(1)
             section = name.split(" · ", 1)[1] if name.startswith("个人规则 · ") else None
             seen.add(section)
+            if section and not any(personal.values()):
+                out.append("  # 个人规则 · 依次匹配拒绝、直连、代理三个规则集，内容见 rules/tokyo/\n")
+                out += [f"  - {q(f'RULE-SET,tokyo-{v},{k}')}\n" for k, v in TOKYO_SETS.items()]
+            if name.startswith("中国 IP"):
+                out.append("  # 中国 IP · 规则集 rules/tokyo/cn-ip.list\n")
+                out.append(f"  - {q('RULE-SET,tokyo-cn-ip,DIRECT,no-resolve')}\n")
+            if section or name.startswith("中国 IP"):
+                continue
         m = re.fullmatch(r'  - "(.+)"\n?', line)
         if m:
             parts = m.group(1).split(",")
@@ -172,11 +201,35 @@ def tokyo(body):
                 if parts[i] not in groups:
                     raise SystemExit(f"规则引用了未定义的分组：{parts[i]}")
                 parts[i] = "DIRECT" if section in TOKYO_US_HOME else TOKYO_PROXY
-                line = f"  - {q(','.join(parts))}\n"
+            if section:
+                personal[parts.pop(i)].append(",".join(parts))
+                continue
+            if out[-1].startswith("  - \"RULE-SET,tokyo-cn-ip,"):
+                if parts[2] != "DIRECT" or parts[0] not in ("IP-CIDR", "IP-CIDR6"):
+                    raise SystemExit(f"国内 IP 段里出现了意外的规则：{m.group(1)}")
+                cn_ip.append(parts[1])
+                continue
+            line = f"  - {q(','.join(parts))}\n"
         out.append(line)
     if TOKYO_US_HOME - seen:
         raise SystemExit(f"模块里找不到这些分段：{TOKYO_US_HOME - seen}")
-    return body[:start] + TOKYO_GROUPS + "".join(out)
+    if not cn_ip:
+        raise SystemExit("模板里找不到中国 IP 段")
+
+    lists = {f"{v}.list": personal[k] for k, v in TOKYO_SETS.items()}
+    lists["cn-ip.list"] = cn_ip
+    providers = "rule-providers:\n" + "".join(
+        TOKYO_PROVIDER.format(
+            name=f"tokyo-{f[:-5]}",
+            behavior="ipcidr" if f == "cn-ip.list" else "classical",
+            url=f"{RAW}rules/tokyo/{f}",
+            # 个人规则改得勤，每小时检查一次；国内 IP 段一天一次
+            interval=86400 if f == "cn-ip.list" else 3600,
+            proxy=TOKYO_PROXY,
+        )
+        for f in lists
+    )
+    return body[:start] + TOKYO_GROUPS + "\n" + providers + "".join(out), lists
 
 
 def main():
@@ -261,15 +314,22 @@ def main():
 
     tokyo_header = (
         "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，供只有东京主、备两个入口节点时使用。\n"
-        "# 规则的条目与顺序和 nextin.yaml 相同，只是代理分组合并成一个：原先指向 US、MEXC_JP、BYBIT_TW、SG 与模板各 AI 分组的规则一律走「🚀 节点选择」。\n"
+        "# 规则的条目与 nextin.yaml 相同，只是代理分组合并成一个：原先指向 US、MEXC_JP、BYBIT_TW、SG 与模板各 AI 分组的规则一律走「🚀 节点选择」。\n"
+        "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、代理三个规则集。\n"
         "# 希尔顿、Kraken、Kalshi、Equifax 与美国金融运营商几段原本按账号所在地走 US，这里改为直连，交给设备自己的美国漫游流量。\n"
     ) + header.splitlines(keepends=True)[-1]
-    out = tokyo_header + tokyo(body)
+    tokyo_body, lists = tokyo(body)
+    out = tokyo_header + tokyo_body
     TOKYO.write_text(out, encoding="utf-8")
     print(f"wrote {TOKYO.relative_to(ROOT)}")
+    TOKYO_RULES.mkdir(exist_ok=True)
+    for name, lines in lists.items():
+        (TOKYO_RULES / name).write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
+        print(f"wrote {(TOKYO_RULES / name).relative_to(ROOT)}: {len(lines)} rules")
     write_js(out, TOKYO_JS, [
         "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
-        "Clash Verge 的扩展脚本：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 tokyo.yaml 的。",
+        "Clash Verge 的扩展脚本：订阅里的节点、DNS 等设置原样保留，只把代理组、规则集与规则换成 tokyo.yaml 的。",
+        "个人规则与国内 IP 段放在仓库的 rules/tokyo/ 下，由内核按链接定时下载；改了规则不必重新粘贴本脚本。",
     ])
 
 

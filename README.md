@@ -4,13 +4,13 @@
 
 ## configs/base.conf
 
-基础配置文件，负责模块之外的兜底分流，逻辑照 Nextin Hub 模板：按名单把境外流量送去代理，其余一律直连。Shadowrocket 会把模块的规则排在配置文件的规则之前，所以 `personal.module` 等模块先匹配，模块没命中的流量才轮到这里。
+基础配置文件，只负责国内直连、国外代理这一层兜底分流。Shadowrocket 会把模块的规则排在配置文件的规则之前，所以 `personal.module` 等模块先匹配，模块没命中的流量才轮到这里。
 
-规则按顺序是：局域网直连；AI 服务（`rules/ai.list`）走 `AI_US`；国内域名直连（blackmatrix7 维护的 `China.list` 与 `China_Domain.list`，前者含关键字和 IP 段，按 `RULE-SET` 引用，后者是纯域名集合，按 `DOMAIN-SET` 引用）；常用境外服务按域名走 `OVERSEAS`；被墙域名（Loyalsoldier 生成的 `gfw.txt`，按 `DOMAIN-SET` 引用）同样按域名走 `OVERSEAS`；其余 `FINAL,DIRECT`。
+规则按顺序是：局域网直连；AI 服务（`rules/ai.list`）走 `AI_US`；国内域名直连（blackmatrix7 维护的 `China.list` 与 `China_Domain.list`，前者含关键字和 IP 段，按 `RULE-SET` 引用，后者是纯域名集合，按 `DOMAIN-SET` 引用）；常用境外服务按域名走 `OVERSEAS`；被墙域名（Loyalsoldier 生成的 `gfw.txt`，按 `DOMAIN-SET` 引用）同样按域名走 `OVERSEAS`；以上都没命中时按解析出的 IP 判断，`GEOIP,CN` 直连；其余 `FINAL,OVERSEAS`。
 
-10 月 10 日起，分流逻辑改成与 Nextin 模板一致。此前末尾是 `GEOIP,CN,DIRECT` 加 `FINAL,OVERSEAS`：名单外的域名要先在本机经国内 DoH 解析出 IP，判断不在国内才交给节点，网页里每个新的 CDN、图片、统计域名都要先等一轮解析，这是同一批节点下比 Nextin 慢的主因。Nextin 模板的国内 IP 规则全部带 `no-resolve`，没有任何规则需要本机解析，名单内的境外域名直接带着域名交给节点，名单外的一律直连。现在照此去掉 `GEOIP,CN`，兜底改为 `DIRECT`；国内名单与常用境外名单留着，不触发解析，也能防止国内域名被 google、github 这类关键字带走。代价与 Nextin 相同：名单外的境外站点会直连，被墙却不在名单里的会打不开，没被墙的可能变慢，遇到时把域名补进 `personal.module`。想退回原来的做法，恢复末尾那两条即可。
+10 月 10 日曾把分流逻辑改成与 Nextin 模板一致：去掉 `GEOIP,CN`，兜底改为 `DIRECT`，同时放开 QUIC。设想是 `GEOIP,CN` 要求名单外的域名先在本机经国内 DoH 解析出 IP，每个新域名多等一轮，而 Nextin 模板没有任何需要本机解析的规则。试下来没有变快，两边选中的节点也差不多，剩下的差别应在客户端内核本身，所以当天就恢复了原来的末尾两条，避免名单外的境外站点直连。
 
-兜底直连后，名单外的 AI 服务也会跟着直连，而它们大多不对国内开放。Nextin 模板用 v2fly 的 `category-ai-!cn` 分类把这类服务统一送去美国节点，这里照做：`tools/build_ai_list.py` 从 MetaCubeX 的同一份名单生成 Shadowrocket 的 DOMAIN-SET `rules/ai.list`，按 raw 链接引用，送到新增的 `AI_US` 组。这个组在美国节点里按延迟择优，排除倍率与信息节点。名单里也有 Claude、OpenAI、Gemini，但模块规则先匹配，它们照旧走模块的 `US`。名单需要更新时运行 `python3 tools/build_ai_list.py` 再提交。
+AI 名单是那次试验留下的。Nextin 模板用 v2fly 的 `category-ai-!cn` 分类把 AI 服务统一送去美国节点，这里照做：`tools/build_ai_list.py` 从 MetaCubeX 的同一份名单生成 Shadowrocket 的 DOMAIN-SET `rules/ai.list`，按 raw 链接引用，送到 `AI_US` 组。这个组在美国节点里按延迟择优，排除倍率与信息节点。不写这条时，Perplexity、Cursor、OpenRouter 这类模块没有钉住的 AI 服务会落到 `OVERSEAS`，出口多在日本、韩国。名单里也有 Claude、OpenAI、Gemini，但模块规则先匹配，它们照旧走模块的 `US`。名单需要更新时运行 `python3 tools/build_ai_list.py` 再提交。
 
 文件里的通用出口是策略组 `OVERSEAS`，类型是 `url-test`，在排除香港、新加坡、台湾之后的全部节点里按延迟自动择优，实际多落在日本、韩国，它们都不通时还能退到美国等其他地区；`tolerance = 50` 让延迟相差不到 50 毫秒时不切换，测速间隔 300 秒，坏掉的节点能更快被换下。它和模块里的分组一样不写 `policy-path`，正则直接筛选全部节点，用一个否定前瞻同时排除上述三个地区、名字里带「倍」的倍率节点，以及「剩余流量」「套餐到期」「官网」这类信息节点。
 
@@ -18,7 +18,7 @@
 
 Telegram 单独走 `TELEGRAM` 组，同样是 `url-test`，候选节点在香港、日本、韩国之外加上新加坡，测速地址换成 `telegram.org`。9 月 30 日的日志显示，当时的通用组 `EAST_ASIA` 按到 gstatic 的延迟择优，几乎每轮测速都换一个节点，107 分钟里换了 14 次；轮到香港5、香港10 时，Telegram 反复在 443、80、5222 三个端口上重连阿姆斯特丹和新加坡机房，香港10 上持续了一分多钟，还转去 `dns.google.com` 拉备用地址，而同一节点上的 Google 请求一次就通。也就是说，gstatic 的延迟反映不出节点到 Telegram 机房的线路好坏，Telegram 时快时慢取决于那一轮碰巧选中了哪个节点。改用 Telegram 自己的服务器测速后，选出的就是到它机房最快的节点；IP 段也按官方的 `cidr.txt` 补齐了此前缺的几段。若仍偶尔卡住，进 `TELEGRAM` 组看一下各节点的测速结果，把长期超时的节点从正则里排除即可。
 
-常用境外名单直接写在文件里，内容是 Google、YouTube、Telegram、GitHub、Reddit、Netflix 等常见站点的关键字和后缀。兜底直连之后，这份名单与 `gfw.txt` 一起决定了哪些境外流量走代理。没有引用 blackmatrix7 的 `Global` 或 `Proxy` 名单，因为它们包含 `apple.com`、`icloud.com`、`microsoft.com`、`akamai.net` 等域名，会把 iCloud、系统更新和国内也在使用的 CDN 一并改走代理。X 与各家 AI 服务已由模块钉到 `US`，不在这份名单里重复。需要固定出口的服务照旧写进模块。
+常用境外名单直接写在文件里，内容是 Google、YouTube、Telegram、GitHub、Reddit、Netflix 等常见站点的关键字和后缀。以前这些域名要先经国内 DoH 解析，再由 `GEOIP,CN` 判断不在国内，才落到兜底规则；现在按域名直接命中，每个新域名省去一轮 DNS 查询，被污染的解析结果也不再影响分流。没有引用 blackmatrix7 的 `Global` 或 `Proxy` 名单，因为它们包含 `apple.com`、`icloud.com`、`microsoft.com`、`akamai.net` 等域名，会把 iCloud、系统更新和国内也在使用的 CDN 一并改走代理。X 与各家 AI 服务已由模块钉到 `US`，不在这份名单里重复。需要固定出口的服务照旧写进模块。
 DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避免请求绕开节点、从本机 IPv6 地址直接出去。
 `udp-policy-not-supported-behaviour = REJECT` 让节点不支持 UDP 时拒绝 UDP 连接，QUIC 会随之退回 TCP 走代理，而不是改成直连。
 

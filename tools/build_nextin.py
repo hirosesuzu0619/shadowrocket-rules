@@ -20,11 +20,15 @@ URL_FILE = ROOT / "tools" / "nextin.url"
 # 广告拦截之前插入个人规则
 RULES_ANCHOR = "  # 广告拦截 · Nextin bundled MRS\n"
 GROUPS_ANCHOR = "\nrules:\n"
+# 这几段不搬：模板自带 OpenAI、Anthropic、Gemini 分组，交给模板处理，速度与纯 Nextin 模板一致
+SKIP_SECTIONS = {"Claude", "OpenAI", "Gemini"}
 
 
 def load_template(src):
     if src.startswith("http"):
-        with urllib.request.urlopen(src) as resp:
+        # Nextin Hub 会拒绝 Python 默认的 User-Agent（403），这里换成 curl 的
+        req = urllib.request.Request(src, headers={"User-Agent": "curl/8.5.0"})
+        with urllib.request.urlopen(req) as resp:
             return resp.read().decode("utf-8")
     return pathlib.Path(src).read_text(encoding="utf-8")
 
@@ -77,7 +81,7 @@ def main():
     template = load_template(src)
     mod = sections(MODULE.read_text(encoding="utf-8"))
 
-    rule_lines, used, title = [], set(), None
+    rule_lines, used, title, skipping = [], set(), None, False
     for line in mod["Rule"]:
         s = line.strip()
         if not s:
@@ -85,7 +89,11 @@ def main():
         if s.startswith("#"):
             # 只保留分段标题，作为 YAML 注释；没有规则的分段不输出标题
             if s.startswith("# ——"):
-                title = f"  # 个人规则 · {s.strip('# —').strip()}"
+                name = s.strip("# —").strip()
+                skipping = name in SKIP_SECTIONS
+                title = f"  # 个人规则 · {name}"
+            continue
+        if skipping:
             continue
         # QUIC 相关的 AND 规则不搬：Nextin 模板本身不拦 QUIC，Claude 的放行例外也就无需存在
         if s.startswith("AND,") and "DST-PORT,443" in s:
@@ -117,6 +125,7 @@ def main():
     header = (
         "# 本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，模板原有内容未改动。\n"
         "# 个人规则排在私有地址之后、广告拦截之前；模块的 URL 重写与 MITM 在 mihomo 里没有对应功能，未搬入。\n"
+        "# 模块里的 Claude、OpenAI、Gemini 三段未搬入，由模板自带的 Anthropic、OpenAI、Gemini 分组处理。\n"
     )
     out = header + template
     out = out.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)

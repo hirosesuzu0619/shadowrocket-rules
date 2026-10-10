@@ -57,3 +57,13 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 ### URL 重写
 
 模块把 `google.cn`、`g.cn`（含 `www.` 前缀）用 302 跳转到 `https://www.google.com`，跳转由 Shadowrocket 在本地直接返回，不经过任何节点。正则在主机名之后要求紧跟 `/`、`:`、`?` 或网址结尾，否则 `g.cn.miaozhen.com` 这类以 `g.cn` 开头的其他域名也会被误跳转。对 https 地址，不解密就看不到完整 URL，所以模块同时用 `%APPEND%` 把这四个主机名追加进 `[MITM]` 的解密列表；证书仍用设备上那份配置里生成的，仓库里不出现证书和口令。没有安装并信任证书时，只有 http 地址的跳转会生效。
+
+## configs/nextin.yaml
+
+在 Nextin Hub 生成的 mihomo（Clash Meta）模板之上，并入 `personal.module` 的分组与规则。实际使用中，同一批节点下这份模板比 `base.conf` 加模块明显更快，尤其是在 Claude 上传图片时，所以直接以它为底，把个人规则搬进去。模板原有的分组、规则与顺序一行未改，只在两处插入内容：`US`、`MEXC_JP`、`BYBIT_TW`、`SG` 四个个人分组追加在 `proxy-groups` 末尾；个人规则插在私有地址之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致，所以 MEXC 的推送与归因、Claude 的 sentry、datadog 遥测这类域名不会先被模板的广告与追踪名单拦掉。
+
+搬运时有几处按 mihomo 的规矩做了调整。mihomo 用 Go 的正则，不支持否定前瞻，`MEXC_JP`、`BYBIT_TW` 里「排除倍率与信息节点」的写法拆成了 `filter` 与 `exclude-filter` 两项；测速超时从秒换算成毫秒。模块开头拒绝 QUIC 的规则以及 Claude 的放行例外没有搬，Nextin 模板本身不拦 QUIC，这正是它与 `base.conf` 的差别之一。没有任何规则引用的 `JP` 组不搬。URL 重写与 `[MITM]` 在 mihomo 配置里没有对应功能，`google.cn` 跳转在这份配置下不生效。
+
+文件由 `tools/build_nextin.py` 生成，不要手工编辑。改了 `personal.module` 之后运行 `python3 tools/build_nextin.py`，脚本会按 `tools/nextin.url` 里的地址重新下载模板并重新合并；想换 Nextin 的规则组合，就在 Nextin Hub 重新生成链接，替换 `tools/nextin.url` 后再运行。生成后可用 mihomo 自带的检查确认无误：`mihomo -d <目录> -t -f configs/nextin.yaml`。
+
+使用时在 mihomo 内核的客户端里，按原来使用 Nextin 模板的方式填入 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/nextin.yaml`。模板里 `proxies` 为空、各组用 `include-all-proxies` 吸收全部节点，订阅节点由客户端合并进来，文件里不出现任何节点或订阅链接。

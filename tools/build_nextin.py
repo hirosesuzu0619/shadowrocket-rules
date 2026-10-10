@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """把 modules/personal.module 的分组与规则并入 Nextin Hub 生成的 mihomo 模板，输出 configs/nextin.yaml。
 
-模板原有内容一行不改，只在两处插入：
+模板原有内容一行不改，只在三处插入：
 - 个人分组追加在 proxy-groups 末尾；
-- 个人规则插在私有 IP 之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致。
+- 个人规则插在私有 IP 之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致；
+- 兜底的 MATCH 之前加一条 GEOSITE,cn,DIRECT，让国内域名直连。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -20,6 +21,10 @@ URL_FILE = ROOT / "tools" / "nextin.url"
 # 广告拦截之前插入个人规则
 RULES_ANCHOR = "  # 广告拦截 · Nextin bundled MRS\n"
 GROUPS_ANCHOR = "\nrules:\n"
+# 模板的国内 IP 规则都带 no-resolve，按域名发起的请求匹配不上，B 站接口这类国内域名会落到 MATCH 走代理；
+# 在 MATCH 之前补一条国内域名直连，排在被墙名单之后，境外域名不受影响
+CN_DIRECT = '  # 国内域名直连（个人追加）\n  - "GEOSITE,cn,DIRECT"\n'
+MATCH_RE = re.compile(r'^  - "MATCH,[^"]*"\n', re.M)
 # 这几段交给模板自带的 OpenAI、Anthropic、Gemini 分组处理，速度与纯 Nextin 模板一致
 # 值为 None 表示整段不搬；Claude 段只去掉主站两条，其余见下方 FOLLOW_GEOSITE
 SKIP_RULES = {
@@ -141,14 +146,17 @@ def main():
         raise SystemExit(f"规则引用了未定义的分组：{missing}")
 
     assert template.count(RULES_ANCHOR) == 1 and template.count(GROUPS_ANCHOR) == 1
+    assert len(MATCH_RE.findall(template)) == 1
     header = (
         "# 本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，模板原有内容未改动。\n"
         "# 个人规则排在私有地址之后、广告拦截之前；模块的 URL 重写与 MITM 在 mihomo 里没有对应功能，未搬入。\n"
         "# Claude 主站（claude 关键字与 anthropic.com）以及 OpenAI、Gemini 两段未搬入，由模板自带的 Anthropic、OpenAI、Gemini 分组处理；Claude 的人机验证、statsig 与遥测风控域名改指模板的 Anthropic 分组，与主站同一出口。\n"
+        "# 兜底的 MATCH 之前追加了 GEOSITE,cn,DIRECT：模板的国内 IP 规则带 no-resolve，不加这条时国内域名会走代理。\n"
     )
     out = header + template
     out = out.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)
     out = out.replace(RULES_ANCHOR, "\n".join(rule_lines) + "\n" + RULES_ANCHOR, 1)
+    out = MATCH_RE.sub(lambda m: CN_DIRECT + m.group(0), out, count=1)
     OUTPUT.write_text(out, encoding="utf-8")
     print(f"wrote {OUTPUT.relative_to(ROOT)}: {len(names)} groups, {sum(1 for l in rule_lines if l.startswith('  - '))} rules")
 

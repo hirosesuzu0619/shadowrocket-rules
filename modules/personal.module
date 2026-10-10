@@ -135,6 +135,11 @@ DOMAIN-SUFFIX,bytick.com,BYBIT_TW
 DOMAIN-SUFFIX,bycsi.com,BYBIT_TW
 # 各地区站点（bybit.nl、bybit.eu、bybit-tr 等）名字不一，用关键字兜底
 DOMAIN-KEYWORD,bybit,BYBIT_TW
+# 以下四条来自设备上的旧手动规则，此前指向 PROXY（首页所选节点）；byabcde、bybdc6、byd3c3 是 Bybit 的资源与备用域名，byapps 用关键字兜住 App 相关域名
+DOMAIN-SUFFIX,byabcde.com,BYBIT_TW
+DOMAIN-SUFFIX,bybdc6.com,BYBIT_TW
+DOMAIN-SUFFIX,byd3c3.com,BYBIT_TW
+DOMAIN-KEYWORD,byapps,BYBIT_TW
 
 # —— 钱包 ——
 DOMAIN-SUFFIX,ethenapay-api.co,SG
@@ -197,6 +202,12 @@ DOMAIN-SUFFIX,twitter.com,US
 DOMAIN-SUFFIX,twimg.com,US
 DOMAIN-SUFFIX,t.co,US
 
+# —— OKX ——
+# 旧手动规则指向 PROXY，跟随首页节点；10 月 10 日的日志里 okx.com 走了美国3，而 OKX 不对美国用户开放
+# okx.com 也在 Nextin 模板的被墙名单里，那个分组排除新加坡、可能落到美国，所以钉到 SG；用关键字以便同时命中 okx.com.cdn.cloudflare.net 这类 CDN 别名
+DOMAIN-KEYWORD,okx.com,SG
+DOMAIN-KEYWORD,okx-dns,SG
+
 # —— 第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 已有的新加坡出口保持一致）——
 # geetest 是独立的验证码厂商，非某个交易所自有；cloudauth-device 是阿里云实人认证，直连会在做身份核验时原样交出真实 IP
 DOMAIN-SUFFIX,geetest.com,SG
@@ -233,6 +244,39 @@ DOMAIN-KEYWORD,kalshi,US
 # 10 月 10 日 08:52 点开 Equifax 邮件里的链接，click.e.equifax.com 落在 FINAL,OVERSEAS 的日本5；美国征信机构按来源地区做登录风控，出口需与账号所在地一致
 # 用关键字统一命中 equifax.com 及其各个子域（邮件跳转、登录、账户中心），名字里带 equifax 的其他根域也一并走 US
 DOMAIN-KEYWORD,equifax,US
+
+# —— 美国金融与运营商 ——
+# 以下来自设备上的旧手动规则，此前指向 PROXY（首页所选节点）；与 Kraken、Kalshi、Equifax 一样按账号所在地固定走 US
+# Schwab 的域名有 schwab.com、schwabplan.com 等多个根域，用关键字统一命中
+DOMAIN-KEYWORD,schwab,US
+DOMAIN-SUFFIX,monarch.com,US
+DOMAIN-SUFFIX,kubera.com,US
+DOMAIN-SUFFIX,redpocket.com,US
+DOMAIN-SUFFIX,useorigin.com,US
+DOMAIN-SUFFIX,t-mobile.com,US
+
+# —— 待定地区（暂走新加坡）——
+# 以下来自设备上的旧手动规则，此前指向 PROXY（首页所选节点）；所需地区尚未确定，先固定走 SG，确认后再改
+# 银行与支付：Wise、N26（tech26.de 是 N26 的旧域名）、Gekkard
+DOMAIN-SUFFIX,wise.com,SG
+DOMAIN-SUFFIX,n26.com,SG
+DOMAIN-SUFFIX,tech26.de,SG
+DOMAIN-KEYWORD,gekkard.com,SG
+# 加密卡、钱包与 DeFi：Kast、Moment、Ekubo、Vesu、Ready（原 Argent 钱包）
+DOMAIN-SUFFIX,kastapi.com,SG
+DOMAIN-KEYWORD,shopmoment,SG
+DOMAIN-KEYWORD,ekubo,SG
+DOMAIN-SUFFIX,vesu.xyz,SG
+DOMAIN-SUFFIX,ready.co,SG
+DOMAIN-SUFFIX,argent-api.com,SG
+# 其他
+DOMAIN-SUFFIX,dune.com,SG
+DOMAIN-SUFFIX,coca.xyz,SG
+
+# —— 国内直连 ——
+# 来自设备上的旧手动规则；Nextin 模板没有国内域名名单，未命中规则的域名一律走代理，这两个国内站点需要显式直连
+DOMAIN-SUFFIX,luluwu.org,DIRECT
+DOMAIN-SUFFIX,weijingle.com,DIRECT
 
 [URL Rewrite]
 # google.cn 与 g.cn 只剩一个跳转页，这里由 Shadowrocket 在本地直接回 302，改到 www.google.com

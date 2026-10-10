@@ -214,6 +214,10 @@ rules:
   - "DOMAIN-SUFFIX,bytick.com,BYBIT_TW"
   - "DOMAIN-SUFFIX,bycsi.com,BYBIT_TW"
   - "DOMAIN-KEYWORD,bybit,BYBIT_TW"
+  - "DOMAIN-SUFFIX,byabcde.com,BYBIT_TW"
+  - "DOMAIN-SUFFIX,bybdc6.com,BYBIT_TW"
+  - "DOMAIN-SUFFIX,byd3c3.com,BYBIT_TW"
+  - "DOMAIN-KEYWORD,byapps,BYBIT_TW"
   # 个人规则 · 钱包
   - "DOMAIN-SUFFIX,ethenapay-api.co,SG"
   # 个人规则 · Meta AI
@@ -237,6 +241,9 @@ rules:
   - "DOMAIN-SUFFIX,twitter.com,US"
   - "DOMAIN-SUFFIX,twimg.com,US"
   - "DOMAIN-SUFFIX,t.co,US"
+  # 个人规则 · OKX
+  - "DOMAIN-KEYWORD,okx.com,SG"
+  - "DOMAIN-KEYWORD,okx-dns,SG"
   # 个人规则 · 第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 已有的新加坡出口保持一致）
   - "DOMAIN-SUFFIX,geetest.com,SG"
   - "DOMAIN-SUFFIX,cloudauth-device.aliyuncs.com,SG"
@@ -256,6 +263,29 @@ rules:
   - "DOMAIN-KEYWORD,kalshi,US"
   # 个人规则 · Equifax
   - "DOMAIN-KEYWORD,equifax,US"
+  # 个人规则 · 美国金融与运营商
+  - "DOMAIN-KEYWORD,schwab,US"
+  - "DOMAIN-SUFFIX,monarch.com,US"
+  - "DOMAIN-SUFFIX,kubera.com,US"
+  - "DOMAIN-SUFFIX,redpocket.com,US"
+  - "DOMAIN-SUFFIX,useorigin.com,US"
+  - "DOMAIN-SUFFIX,t-mobile.com,US"
+  # 个人规则 · 待定地区（暂走新加坡）
+  - "DOMAIN-SUFFIX,wise.com,SG"
+  - "DOMAIN-SUFFIX,n26.com,SG"
+  - "DOMAIN-SUFFIX,tech26.de,SG"
+  - "DOMAIN-KEYWORD,gekkard.com,SG"
+  - "DOMAIN-SUFFIX,kastapi.com,SG"
+  - "DOMAIN-KEYWORD,shopmoment,SG"
+  - "DOMAIN-KEYWORD,ekubo,SG"
+  - "DOMAIN-SUFFIX,vesu.xyz,SG"
+  - "DOMAIN-SUFFIX,ready.co,SG"
+  - "DOMAIN-SUFFIX,argent-api.com,SG"
+  - "DOMAIN-SUFFIX,dune.com,SG"
+  - "DOMAIN-SUFFIX,coca.xyz,SG"
+  # 个人规则 · 国内直连
+  - "DOMAIN-SUFFIX,luluwu.org,DIRECT"
+  - "DOMAIN-SUFFIX,weijingle.com,DIRECT"
   # 广告拦截 · Nextin bundled MRS
   - "GEOSITE,category-ads-all,REJECT"
   # 追踪器 · Nextin bundled MRS

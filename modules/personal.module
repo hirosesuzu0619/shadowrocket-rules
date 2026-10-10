@@ -224,6 +224,11 @@ DOMAIN-SUFFIX,kalshi.com,US
 # 另有几个自有素材桶挂在 amazonaws.com 下、名字是前缀而非后缀（kalshi-public-docs、kalshi-public-images），只能靠关键字命中
 DOMAIN-KEYWORD,kalshi,US
 
+# —— Equifax ——
+# 10 月 10 日 08:52 点开 Equifax 邮件里的链接，click.e.equifax.com 落在 FINAL,OVERSEAS 的日本5；美国征信机构按来源地区做登录风控，出口需与账号所在地一致
+# 用关键字统一命中 equifax.com 及其各个子域（邮件跳转、登录、账户中心），名字里带 equifax 的其他根域也一并走 US
+DOMAIN-KEYWORD,equifax,US
+
 [URL Rewrite]
 # google.cn 与 g.cn 只剩一个跳转页，这里由 Shadowrocket 在本地直接回 302，改到 www.google.com
 # 原规则里的点没有转义，这里补上反斜杠，避免 . 匹配任意字符

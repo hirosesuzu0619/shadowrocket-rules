@@ -9,7 +9,7 @@
 同时把结果中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
 
 另外生成只有东京静态住宅 IP 时用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
-所有代理分组合并成一个，按账号所在地走美国的几段改为直连。
+所有代理分组合并成一个。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -68,8 +68,6 @@ TOKYO_GROUPS = f"""proxy-groups:
     url: "https://www.gstatic.com/generate_204"
     interval: 300
 """
-# 这几段原本按账号所在地钉在 US。东京版没有美国出口，改为直连，交给设备自己的美国漫游流量
-TOKYO_US_HOME = {"希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商"}
 BUILTIN = {"DIRECT", "REJECT", "REJECT-DROP", "PASS"}
 # Clash Verge 的扩展脚本存在本地，不能按链接订阅。所以东京版把常改的个人规则与庞大的国内 IP 段放进 rules/tokyo/ 下的规则集，
 # 由 mihomo 按 raw 链接定时下载，脚本本身只剩分组与规则骨架，改了 personal.module 也不必重新粘贴
@@ -171,19 +169,17 @@ def write_js(text, path, intro):
 def tokyo(body):
     """把合并后的配置改成东京版，返回 (配置正文, {规则集文件名: 内容})。
 
-    代理组换成 TOKYO_GROUPS；内置策略（DIRECT、REJECT 等）不动，TOKYO_US_HOME 几段改为 DIRECT，
-    其余凡是指向代理分组的一律改指 TOKYO_PROXY。个人规则与国内 IP 段移进规则集，原位置换成 RULE-SET。
+    代理组换成 TOKYO_GROUPS；内置策略（DIRECT、REJECT 等）不动，凡是指向代理分组的一律改指 TOKYO_PROXY。个人规则与国内 IP 段移进规则集，原位置换成 RULE-SET。
     """
     start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
     groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
     personal = {k: [] for k in TOKYO_SETS}
-    cn_ip, out, section, seen = [], [], None, set()
+    cn_ip, out, section = [], [], None
     for line in body[end:].splitlines(keepends=True):
         m = re.match(r"  # (.+)", line)
         if m:
             name = m.group(1)
             section = name.split(" · ", 1)[1] if name.startswith("个人规则 · ") else None
-            seen.add(section)
             if section and not any(personal.values()):
                 out.append("  # 个人规则 · 依次匹配拒绝、直连、代理三个规则集，内容见 rules/tokyo/\n")
                 out += [f"  - {q(f'RULE-SET,tokyo-{v},{k}')}\n" for k, v in TOKYO_SETS.items()]
@@ -200,7 +196,7 @@ def tokyo(body):
             if parts[i] not in BUILTIN:
                 if parts[i] not in groups:
                     raise SystemExit(f"规则引用了未定义的分组：{parts[i]}")
-                parts[i] = "DIRECT" if section in TOKYO_US_HOME else TOKYO_PROXY
+                parts[i] = TOKYO_PROXY
             if section:
                 personal[parts.pop(i)].append(",".join(parts))
                 continue
@@ -211,8 +207,6 @@ def tokyo(body):
                 continue
             line = f"  - {q(','.join(parts))}\n"
         out.append(line)
-    if TOKYO_US_HOME - seen:
-        raise SystemExit(f"模块里找不到这些分段：{TOKYO_US_HOME - seen}")
     if not cn_ip:
         raise SystemExit("模板里找不到中国 IP 段")
 
@@ -316,7 +310,6 @@ def main():
         "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，供只有东京主、备两个入口节点时使用。\n"
         "# 规则的条目与 nextin.yaml 相同，只是代理分组合并成一个：原先指向 US、MEXC_JP、BYBIT_TW、SG 与模板各 AI 分组的规则一律走「🚀 节点选择」。\n"
         "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、代理三个规则集。\n"
-        "# 希尔顿、Kraken、Kalshi、Equifax 与美国金融运营商几段原本按账号所在地走 US，这里改为直连，交给设备自己的美国漫游流量。\n"
     ) + header.splitlines(keepends=True)[-1]
     tokyo_body, lists = tokyo(body)
     out = tokyo_header + tokyo_body

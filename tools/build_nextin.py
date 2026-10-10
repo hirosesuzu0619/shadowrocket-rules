@@ -21,12 +21,15 @@ URL_FILE = ROOT / "tools" / "nextin.url"
 RULES_ANCHOR = "  # 广告拦截 · Nextin bundled MRS\n"
 GROUPS_ANCHOR = "\nrules:\n"
 # 这几段交给模板自带的 OpenAI、Anthropic、Gemini 分组处理，速度与纯 Nextin 模板一致
-# 值为 None 表示整段不搬；Claude 段只去掉主站两条，人机验证、statsig 与遥测风控域名仍固定走 US
+# 值为 None 表示整段不搬；Claude 段只去掉主站两条，其余见下方 FOLLOW_GEOSITE
 SKIP_RULES = {
     "Claude": {"DOMAIN-KEYWORD,claude,US", "DOMAIN-SUFFIX,anthropic.com,US"},
     "OpenAI": None,
     "Gemini": None,
 }
+# 这些分段里剩下的规则改指模板里某条 GEOSITE 规则的目标分组：Claude 的人机验证、statsig 与遥测风控要与主站同一出口，
+# 所以跟随模板的 Anthropic 分组；分组名从模板读取，Nextin 改名也不受影响
+FOLLOW_GEOSITE = {"Claude": "anthropic"}
 
 
 def load_template(src):
@@ -86,7 +89,8 @@ def main():
     template = load_template(src)
     mod = sections(MODULE.read_text(encoding="utf-8"))
 
-    rule_lines, used, title, skip = [], set(), None, set()
+    template_groups = set(re.findall(r'^  - name: "(.+)"$', template, re.M))
+    rule_lines, used, title, skip, follow = [], set(), None, set(), None
     for line in mod["Rule"]:
         s = line.strip()
         if not s:
@@ -96,6 +100,12 @@ def main():
             if s.startswith("# ——"):
                 name = s.strip("# —").strip()
                 skip = SKIP_RULES.get(name, set())
+                follow = None
+                if name in FOLLOW_GEOSITE:
+                    m = re.search(rf'^  - "GEOSITE,{re.escape(FOLLOW_GEOSITE[name])},(.+)"$', template, re.M)
+                    if not m:
+                        raise SystemExit(f"模板里找不到 GEOSITE,{FOLLOW_GEOSITE[name]} 规则")
+                    follow = m.group(1)
                 title = f"  # 个人规则 · {name}"
             continue
         if skip is None or s in skip:
@@ -104,6 +114,10 @@ def main():
         if s.startswith("AND,") and "DST-PORT,443" in s:
             continue
         # 各类规则的策略都在第三个字段（IP-CIDR 之后还跟着 no-resolve）
+        if follow:
+            parts = s.split(",")
+            parts[2] = follow
+            s = ",".join(parts)
         used.add(s.split(",")[2])
         if title:
             rule_lines.append(title)
@@ -122,7 +136,7 @@ def main():
 
     builtin = {"DIRECT", "REJECT"}
     names = {re.match(r'  - name: "(.+)"', l).group(1) for l in group_lines if l.startswith("  - name:")}
-    missing = used - builtin - names
+    missing = used - builtin - names - template_groups
     if missing:
         raise SystemExit(f"规则引用了未定义的分组：{missing}")
 
@@ -130,7 +144,7 @@ def main():
     header = (
         "# 本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，模板原有内容未改动。\n"
         "# 个人规则排在私有地址之后、广告拦截之前；模块的 URL 重写与 MITM 在 mihomo 里没有对应功能，未搬入。\n"
-        "# Claude 主站（claude 关键字与 anthropic.com）以及 OpenAI、Gemini 两段未搬入，由模板自带的 Anthropic、OpenAI、Gemini 分组处理；Claude 的人机验证、statsig 与遥测风控域名仍走 US。\n"
+        "# Claude 主站（claude 关键字与 anthropic.com）以及 OpenAI、Gemini 两段未搬入，由模板自带的 Anthropic、OpenAI、Gemini 分组处理；Claude 的人机验证、statsig 与遥测风控域名改指模板的 Anthropic 分组，与主站同一出口。\n"
     )
     out = header + template
     out = out.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)

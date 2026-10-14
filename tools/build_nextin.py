@@ -53,10 +53,13 @@ FOLLOW_GEOSITE = {"Claude": "anthropic"}
 # 它默认用「🛡️ 故障转移」，按订阅里的节点顺序先用主入口，主入口不通才换备入口；也可以手动选定某个入口
 TOKYO_PROXY = "🚀 节点选择"
 INFO_NODES = "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)"
+# 「🚀 节点选择」里手动可选的节点只收名字带日本或东京的，「🛡️ 故障转移」不受影响，仍收全部节点
+TOKYO_PICK = "(日本|东京)"
 TOKYO_GROUPS = f"""proxy-groups:
   - name: "{TOKYO_PROXY}"
     type: select
     include-all-proxies: true
+    filter: "{TOKYO_PICK}"
     exclude-filter: "{INFO_NODES}"
     proxies:
       - "🛡️ 故障转移"

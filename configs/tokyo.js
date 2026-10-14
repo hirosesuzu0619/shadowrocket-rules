@@ -5,6 +5,7 @@ var PROXY_GROUPS = [
   {
     "name": "🚀 节点选择",
     "type": "select",
+    "filter": "(日本|东京)",
     "exclude-filter": "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)",
     "proxies": [
       "🛡️ 故障转移",

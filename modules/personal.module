@@ -277,6 +277,9 @@ DOMAIN-SUFFIX,coca.xyz,SG
 # 来自设备上的旧手动规则；Nextin 模板没有国内域名名单，未命中规则的域名一律走代理，这两个国内站点需要显式直连
 DOMAIN-SUFFIX,luluwu.org,DIRECT
 DOMAIN-SUFFIX,weijingle.com,DIRECT
+# 中国建设银行：App 接口、网银、推送与广告资源都在 ccb.com 与 ccb.com.cn 两个后缀下；银行 App 看来源 IP 做风控，境外出口可能被要求重新验证，显式直连，不依赖各版本的国内名单
+DOMAIN-SUFFIX,ccb.com,DIRECT
+DOMAIN-SUFFIX,ccb.com.cn,DIRECT
 
 [URL Rewrite]
 # google.cn 与 g.cn 只剩一个跳转页，这里由 Shadowrocket 在本地直接回 302，改到 www.google.com

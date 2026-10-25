@@ -255,6 +255,22 @@ DOMAIN-SUFFIX,redpocket.com,US
 DOMAIN-SUFFIX,useorigin.com,US
 DOMAIN-SUFFIX,t-mobile.com,US
 
+# —— TopCashback ——
+# 10 月 25 日的日志里 mobileapi、mobilesecurityapi 与 CDN usp.tcb-cdn.com 都没有专门规则，落在兜底的东京出口；返现站按账号所在地区结算，出口需与账号一致
+# 用关键字统一命中 topcashback.com 及各国站点（topcashback.co.uk 等）；tcb-cdn.com 是它的静态资源域名
+DOMAIN-KEYWORD,topcashback,US
+DOMAIN-SUFFIX,tcb-cdn.com,US
+
+# —— Trip.com ——
+# 10 月 25 日的日志里 trip.com、tripcdn.com 全被国内名单直连，m.trip.com、asryun 与 ubt-sin.tripcdn.com 解析到 Akamai 海外节点，直连全部超时
+# 后缀涵盖主站、tcpgateway 长连接、cpush 推送、sin-im3 客服与图片资源
+DOMAIN-SUFFIX,trip.com,US
+DOMAIN-SUFFIX,tripcdn.com,US
+# Trip.com App 同一会话还调用了携程的三个接口：行为上报、移动 API 与保险；只列具体子域，携程 App 发往这三处的请求也会一并走 US
+DOMAIN,ubtlog.ctrip.com,US
+DOMAIN,m.ctrip.com,US
+DOMAIN,m.ctripins.com,US
+
 # —— 待定地区（暂走新加坡）——
 # 以下来自设备上的旧手动规则，此前指向 PROXY（首页所选节点）；所需地区尚未确定，先固定走 SG，确认后再改
 # 银行与支付：Wise、N26（tech26.de 是 N26 的旧域名）、Gekkard

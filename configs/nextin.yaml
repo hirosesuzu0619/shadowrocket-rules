@@ -281,6 +281,15 @@ rules:
   - "DOMAIN-SUFFIX,redpocket.com,US"
   - "DOMAIN-SUFFIX,useorigin.com,US"
   - "DOMAIN-SUFFIX,t-mobile.com,US"
+  # 个人规则 · TopCashback
+  - "DOMAIN-KEYWORD,topcashback,US"
+  - "DOMAIN-SUFFIX,tcb-cdn.com,US"
+  # 个人规则 · Trip.com
+  - "DOMAIN-SUFFIX,trip.com,US"
+  - "DOMAIN-SUFFIX,tripcdn.com,US"
+  - "DOMAIN,ubtlog.ctrip.com,US"
+  - "DOMAIN,m.ctrip.com,US"
+  - "DOMAIN,m.ctripins.com,US"
   # 个人规则 · 待定地区（暂走新加坡）
   - "DOMAIN-SUFFIX,wise.com,SG"
   - "DOMAIN-SUFFIX,n26.com,SG"

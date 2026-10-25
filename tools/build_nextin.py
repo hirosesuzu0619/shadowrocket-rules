@@ -8,8 +8,8 @@
 
 同时把结果中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
 
-另外生成只有东京静态住宅 IP 时用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
-所有代理分组合并成一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
+另外生成东京静态住宅 IP 订阅用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
+AI 与美国账户类服务走另一份美国订阅的节点，其余代理分组合并成东京一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -55,6 +55,14 @@ TOKYO_PROXY = "🚀 节点选择"
 INFO_NODES = "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)"
 # 「🚀 节点选择」里手动可选的节点只收名字带日本或东京的，「🛡️ 故障转移」不受影响，仍收全部节点
 TOKYO_PICK = "(日本|东京)"
+# AI 与美国账户类服务走另一份美国订阅的节点。美国订阅作为 proxy-provider「us」引入，链接由用户填在 tokyo.js 顶部，不进仓库；
+# 东京的两个组用 include-all-proxies，只收主订阅自己的节点，美国节点不会混进去，美国组也只用 use 引用 us，与节点名无关
+TOKYO_US = "🇺🇸 美国"
+US_PROVIDER = "us"
+# 这些个人规则分段走美国：AI 服务，以及按账号所在地钉在美国的希尔顿与美国金融、运营商。Siri、Apple TV+、X、交易所等其余分段走东京
+TOKYO_US_SECTIONS = {"Meta AI", "Claude", "Grok", "希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商"}
+# 模板里这几条 GEOSITE 规则也走美国：OpenAI、Anthropic、Google Gemini 与 AI 平台合集
+TOKYO_US_GEOSITES = {"openai", "anthropic", "google-gemini", "category-ai-!cn"}
 TOKYO_GROUPS = f"""proxy-groups:
   - name: "{TOKYO_PROXY}"
     type: select
@@ -64,6 +72,13 @@ TOKYO_GROUPS = f"""proxy-groups:
     proxies:
       - "🛡️ 故障转移"
       - DIRECT
+  - name: "{TOKYO_US}"
+    type: fallback
+    use:
+      - {US_PROVIDER}
+    exclude-filter: "{INFO_NODES}"
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
   - name: "🛡️ 故障转移"
     type: fallback
     include-all-proxies: true
@@ -83,8 +98,9 @@ TOKYO_TAIL = f"""  # 兜底 · 东京版追加：国内域名直连，其余域�
 """
 # Clash Verge 的扩展脚本存在本地，不能按链接订阅。所以东京版把常改的个人规则与庞大的国内 IP 段放进 rules/tokyo/ 下的规则集，
 # 由 mihomo 按 raw 链接定时下载，脚本本身只剩分组与规则骨架，改了 personal.module 也不必重新粘贴
-# 个人规则按策略拆成三个规则集，依次匹配拒绝、直连、代理；模块里直连与拒绝的条目本来就写在同类代理条目之前，顺序不受影响
-TOKYO_SETS = {"REJECT": "reject", "DIRECT": "direct", TOKYO_PROXY: "proxy"}
+# 个人规则按策略拆成四个规则集，依次匹配拒绝、直连、美国、东京；模块里直连与拒绝的条目本来就写在同类代理条目之前，顺序不受影响
+# 美国排在东京之前：两边的关键字规则若同时命中某个域名，宁可让账号类请求走美国，也不让它从日本登录
+TOKYO_SETS = {"REJECT": "reject", "DIRECT": "direct", TOKYO_US: "us", TOKYO_PROXY: "proxy"}
 # 下载规则集也走代理：raw.githubusercontent.com 在国内直连经常不通
 TOKYO_PROVIDER = """  {name}:
     type: http
@@ -94,6 +110,52 @@ TOKYO_PROVIDER = """  {name}:
     path: ./rules/{name}.list
     interval: {interval}
     proxy: "{proxy}"
+"""
+# 美国订阅的节点，下载同样经由东京；url 只是占位，tokyo.js 运行时换成 US_SUBSCRIPTION
+TOKYO_PROXY_PROVIDERS = f"""proxy-providers:
+  {US_PROVIDER}:
+    type: http
+    url: "https://example.invalid/fill-in-US_SUBSCRIPTION"
+    path: ./proxies/{US_PROVIDER}.yaml
+    interval: 86400
+    proxy: "{TOKYO_PROXY}"
+"""
+# tokyo.js 的 main：在通用的替换之外，处理美国订阅链接与订阅 DNS 引用的规则集
+TOKYO_MAIN = f"""// 美国订阅链接填在下面的引号里，保存后重新激活订阅即可。仓库是公开的，填好的脚本只留在本机，不要提交回来。
+// 留空时不建美国组，AI 与美国金融等规则一并走「{TOKYO_PROXY}」，与只有东京订阅时一样。
+var US_SUBSCRIPTION = "";
+
+var TOKYO_PROXY = {json.dumps(TOKYO_PROXY, ensure_ascii=False)};
+var TOKYO_US = {json.dumps(TOKYO_US, ensure_ascii=False)};
+
+function main(config) {{
+  var groups = PROXY_GROUPS;
+  var rules = RULES;
+  // 订阅自带的 DNS 设置可能用 rule-set:名称 引用订阅里的规则集（如 nameserver-policy、fake-ip-filter 里的 cn-domain），
+  // 整体换掉规则集时内核会报 not found rule-set 而拒绝加载，所以把 DNS 引用到的那几个保留下来
+  var old = config["rule-providers"] || {{}};
+  var providers = {{}};
+  var refs = JSON.stringify(config["dns"] || {{}}).match(/rule-set:[^"]+/g) || [];
+  refs.forEach(function (ref) {{
+    ref.slice(9).split(",").forEach(function (name) {{
+      if (old[name]) providers[name] = old[name];
+    }});
+  }});
+  for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
+  if (US_SUBSCRIPTION) {{
+    var us = JSON.parse(JSON.stringify(PROXY_PROVIDERS[{json.dumps(US_PROVIDER)}]));
+    us.url = US_SUBSCRIPTION;
+    config["proxy-providers"] = config["proxy-providers"] || {{}};
+    config["proxy-providers"][{json.dumps(US_PROVIDER)}] = us;
+  }} else {{
+    groups = groups.filter(function (g) {{ return g.name !== TOKYO_US; }});
+    rules = rules.map(function (r) {{ return r.replace("," + TOKYO_US, "," + TOKYO_PROXY); }});
+  }}
+  config["proxy-groups"] = groups;
+  config["rule-providers"] = providers;
+  config["rules"] = rules;
+  return config;
+}}
 """
 
 
@@ -149,30 +211,37 @@ def convert_group(line):
     return name, out
 
 
-def write_js(text, path, intro):
+def write_js(text, path, intro, main_js=None):
     """导出 JS 覆写：订阅的节点、DNS 等设置原样保留，只换掉代理组与规则。
 
     nextin.yaml 里的 proxies 是空的，直接当 YAML 覆写可能把订阅节点一并清空，所以改用脚本只替换这两项。
-    include-all-proxies 换成 include-all，订阅若用 proxy-providers 下发节点也能纳入各组。
+    未传 main_js 时 include-all-proxies 换成 include-all，订阅若用 proxy-providers 下发节点也能纳入各组；
+    东京版自带 main_js，保留 include-all-proxies，免得美国订阅的节点混进东京的组。
     Clash Mi 与 Clash Verge 的扩展脚本都调用 main(config)，同一份脚本两边通用。
     """
     conf = yaml.safe_load(text)
     groups = conf["proxy-groups"]
     providers = conf.get("rule-providers")
-    for g in groups:
-        if g.pop("include-all-proxies", False):
-            g["include-all"] = True
+    proxy_providers = conf.get("proxy-providers")
+    if not main_js:
+        for g in groups:
+            if g.pop("include-all-proxies", False):
+                g["include-all"] = True
+        main_js = (
+            "function main(config) {\n"
+            "  config[\"proxy-groups\"] = PROXY_GROUPS;\n"
+            + ("  config[\"rule-providers\"] = RULE_PROVIDERS;\n" if providers else "")
+            + "  config[\"rules\"] = RULES;\n"
+            "  return config;\n"
+            "}\n"
+        )
     js = (
         "".join(f"// {line}\n" for line in intro)
         + "var PROXY_GROUPS = " + json.dumps(groups, ensure_ascii=False, indent=2) + ";\n\n"
+        + ("var PROXY_PROVIDERS = " + json.dumps(proxy_providers, ensure_ascii=False, indent=2) + ";\n\n" if proxy_providers else "")
         + ("var RULE_PROVIDERS = " + json.dumps(providers, ensure_ascii=False, indent=2) + ";\n\n" if providers else "")
         + "var RULES = [\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in conf["rules"]) + "\n];\n\n"
-        "function main(config) {\n"
-        "  config[\"proxy-groups\"] = PROXY_GROUPS;\n"
-        + ("  config[\"rule-providers\"] = RULE_PROVIDERS;\n" if providers else "")
-        + "  config[\"rules\"] = RULES;\n"
-        "  return config;\n"
-        "}\n"
+        + main_js
     )
     path.write_text(js, encoding="utf-8")
     print(f"wrote {path.relative_to(ROOT)}: {len(groups)} groups, {len(conf['rules'])} rules")
@@ -181,13 +250,14 @@ def write_js(text, path, intro):
 def tokyo(body):
     """把合并后的配置改成东京版，返回 (配置正文, {规则集文件名: 内容})。
 
-    代理组换成 TOKYO_GROUPS；内置策略（DIRECT、REJECT 等）不动，凡是指向代理分组的一律改指 TOKYO_PROXY。个人规则与国内 IP 段移进规则集，原位置换成 RULE-SET。
+    代理组换成 TOKYO_GROUPS；内置策略（DIRECT、REJECT 等）不动，指向代理分组的规则按 TOKYO_US_SECTIONS 与 TOKYO_US_GEOSITES
+    改指 TOKYO_US，其余改指 TOKYO_PROXY。个人规则与国内 IP 段移进规则集，原位置换成 RULE-SET。
     模板的 MATCH 换成 TOKYO_TAIL；模板兜底指向代理时 body 里已有的那条 GEOSITE,cn 一并去掉，免得重复。
     """
     start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
     groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
     personal = {k: [] for k in TOKYO_SETS}
-    cn_ip, out, section = [], [], None
+    cn_ip, out, section, us_seen = [], [], None, set()
     for line in body[end:].splitlines(keepends=True):
         if line in CN_DIRECT.splitlines(keepends=True):
             continue
@@ -199,7 +269,7 @@ def tokyo(body):
             name = m.group(1)
             section = name.split(" · ", 1)[1] if name.startswith("个人规则 · ") else None
             if section and not any(personal.values()):
-                out.append("  # 个人规则 · 依次匹配拒绝、直连、代理三个规则集，内容见 rules/tokyo/\n")
+                out.append("  # 个人规则 · 依次匹配拒绝、直连、美国、东京四个规则集，内容见 rules/tokyo/\n")
                 out += [f"  - {q(f'RULE-SET,tokyo-{v},{k}')}\n" for k, v in TOKYO_SETS.items()]
             if name.startswith("中国 IP"):
                 out.append("  # 中国 IP · 规则集 rules/tokyo/cn-ip.list\n")
@@ -214,7 +284,10 @@ def tokyo(body):
             if parts[i] not in BUILTIN:
                 if parts[i] not in groups:
                     raise SystemExit(f"规则引用了未定义的分组：{parts[i]}")
-                parts[i] = TOKYO_PROXY
+                us = section in TOKYO_US_SECTIONS if section else parts[0] == "GEOSITE" and parts[1] in TOKYO_US_GEOSITES
+                if us:
+                    us_seen.add(section or parts[1])
+                parts[i] = TOKYO_US if us else TOKYO_PROXY
             if section:
                 personal[parts.pop(i)].append(",".join(parts))
                 continue
@@ -229,6 +302,10 @@ def tokyo(body):
         raise SystemExit("模板里找不到中国 IP 段")
     if TOKYO_TAIL not in out:
         raise SystemExit("模板里找不到 MATCH 规则")
+    # 分段或模板规则改了名，对应规则会悄悄落到东京，这里直接报错
+    missing = (TOKYO_US_SECTIONS | TOKYO_US_GEOSITES) - us_seen
+    if missing:
+        raise SystemExit(f"找不到要走美国的分段或模板规则：{missing}")
 
     lists = {f"{v}.list": personal[k] for k, v in TOKYO_SETS.items()}
     lists["cn-ip.list"] = cn_ip
@@ -243,7 +320,7 @@ def tokyo(body):
         )
         for f in lists
     )
-    return body[:start] + TOKYO_GROUPS + "\n" + providers + "".join(out), lists
+    return body[:start] + TOKYO_GROUPS + "\n" + TOKYO_PROXY_PROVIDERS + "\n" + providers + "".join(out), lists
 
 
 def main():
@@ -327,9 +404,11 @@ def main():
     ])
 
     tokyo_header = (
-        "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，供只有东京主、备两个入口节点时使用。\n"
-        "# 规则的条目与 nextin.yaml 相同，只是代理分组合并成一个：原先指向 US、MEXC_JP、BYBIT_TW、SG 与模板各 AI 分组的规则一律走「🚀 节点选择」。\n"
-        "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、代理三个规则集。\n"
+        "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，主订阅是东京住宅 IP，另加一份美国订阅。\n"
+        "# 规则的条目与 nextin.yaml 相同，只改指向：AI 服务（模板的 OpenAI、Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）\n"
+        "# 以及希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商走「🇺🇸 美国」，其余原先指向代理分组的规则一律走「🚀 节点选择」。\n"
+        "# 「🇺🇸 美国」的节点来自 proxy-providers 里的 us，链接在 tokyo.js 顶部填写；这里的 url 只是占位。\n"
+        "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、美国、东京四个规则集。\n"
         "# 兜底的 MATCH 走代理，之前先让国内域名（GEOSITE,cn）直连，再把其余域名在本机解析、落在国内 IP 段的也直连，减少挤上住宅线路的流量。\n"
     )
     tokyo_body, lists = tokyo(body)
@@ -341,10 +420,11 @@ def main():
         (TOKYO_RULES / name).write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
         print(f"wrote {(TOKYO_RULES / name).relative_to(ROOT)}: {len(lines)} rules")
     write_js(out, TOKYO_JS, [
-        "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
-        "Clash Verge 的扩展脚本：订阅里的节点、DNS 等设置原样保留，只把代理组、规则集与规则换成 tokyo.yaml 的。",
+        "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，除了下面的 US_SUBSCRIPTION 不要手工编辑。",
+        "Clash Verge 的扩展脚本：订阅里的节点、DNS 等设置原样保留，只把代理组、规则集与规则换成 tokyo.yaml 的，",
+        "订阅 DNS 设置引用到的规则集一并保留；填了美国订阅链接时再加入美国节点。",
         "个人规则与国内 IP 段放在仓库的 rules/tokyo/ 下，由内核按链接定时下载；改了规则不必重新粘贴本脚本。",
-    ])
+    ], TOKYO_MAIN)
 
 
 if __name__ == "__main__":

@@ -264,6 +264,44 @@ DOMAIN-SUFFIX,tcb-cdn.com,US
 # 只列这一个，其他接入 Button 的 App 不受影响
 DOMAIN,app-2f29bdcb37191a00.mobileapi.usebutton.com,US
 
+# —— 联盟平台跳转（返利）——
+# 从 TopCashback 点去商家时，先经联盟平台的跳转域名写入追踪 Cookie 再到商家；部分美国商家与联盟项目只认美国流量，跳转出口需与返利账号一致
+# 这些域名只用于联盟跳转与成交回传，Rakuten、Honey 等其他返利工具的跳转也会一并走 US；写在广告拦截之前，即使在广告名单里也不会被拦，否则返现记不上
+# 商家自己的域名每次不同，这里不列；需要整段走美国时，购物期间切到全局模式并把 GLOBAL 选为 US
+# Rakuten Advertising（原 LinkShare）
+DOMAIN-SUFFIX,linksynergy.com,US
+# CJ（Commission Junction）的跳转与回传域名
+DOMAIN-SUFFIX,anrdoezrs.net,US
+DOMAIN-SUFFIX,dpbolvw.net,US
+DOMAIN-SUFFIX,jdoqocy.com,US
+DOMAIN-SUFFIX,kqzyfj.com,US
+DOMAIN-SUFFIX,tkqlhce.com,US
+DOMAIN-SUFFIX,qksrv.net,US
+DOMAIN-SUFFIX,emjcd.com,US
+DOMAIN-SUFFIX,apmebf.com,US
+DOMAIN-SUFFIX,ftjcfx.com,US
+DOMAIN-SUFFIX,lduhtrp.net,US
+DOMAIN-SUFFIX,awltovhc.com,US
+DOMAIN-SUFFIX,tqlkg.com,US
+# Impact 的通用跳转域名；商家自定义的跳转子域（如 goto.商家域名）不在此列
+DOMAIN-SUFFIX,sjv.io,US
+DOMAIN-SUFFIX,pxf.io,US
+DOMAIN-SUFFIX,ojrq.net,US
+DOMAIN-SUFFIX,7eer.net,US
+DOMAIN-SUFFIX,evyy.net,US
+DOMAIN-SUFFIX,impactradius-go.com,US
+# Awin、ShareASale、Partnerize、Pepperjam、AvantLink
+DOMAIN-SUFFIX,awin1.com,US
+DOMAIN-SUFFIX,zenaps.com,US
+DOMAIN-SUFFIX,shareasale.com,US
+DOMAIN-SUFFIX,prf.hn,US
+DOMAIN-SUFFIX,pjtra.com,US
+DOMAIN-SUFFIX,pntra.com,US
+DOMAIN-SUFFIX,pntrac.com,US
+DOMAIN-SUFFIX,pntrs.com,US
+DOMAIN-SUFFIX,gopjn.com,US
+DOMAIN-SUFFIX,avantlink.com,US
+
 # —— Trip.com ——
 # 10 月 25 日的日志里 trip.com、tripcdn.com 全被国内名单直连，m.trip.com、asryun 与 ubt-sin.tripcdn.com 解析到 Akamai 海外节点，直连全部超时
 # 后缀涵盖主站、tcpgateway 长连接、cpush 推送、sin-im3 客服与图片资源

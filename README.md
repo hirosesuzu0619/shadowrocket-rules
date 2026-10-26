@@ -60,6 +60,8 @@ DNS 使用腾讯与阿里的 DoH，失败时退回系统 DNS。IPv6 关闭，避
 
 10 月 25 日把 TopCashback 与 Trip.com 也钉到 `US`。TopCashback 此前没有规则，落在兜底出口；返现按账号所在地区结算，用 `topcashback` 关键字统一命中各国站点，再加上它的资源域名 `tcb-cdn.com`。Trip.com 的 `trip.com`、`tripcdn.com` 在国内名单里，东京版会直连，而 `m.trip.com` 等域名解析到 Akamai 海外节点，直连全部超时；同一会话里 App 还调用了携程的 `ubtlog.ctrip.com`、`m.ctrip.com`、`m.ctripins.com`，这三个子域一并走 `US`，携程 App 发往这三处的请求也会随之走美国。
 
+10 月 26 日又加了一段「联盟平台跳转（返利）」：从 TopCashback 点去商家时，请求先经联盟平台的跳转域名写入追踪 Cookie 再到商家，部分美国商家与联盟项目只认美国流量，所以 Rakuten（`linksynergy.com`）、CJ 的一组跳转与回传域名、Impact 的通用跳转域名、Awin、ShareASale、Partnerize、Pepperjam、AvantLink 都走 `US`。这些规则排在广告拦截之前，即使在广告名单里也不会被拦，其他返利工具经过这些平台的跳转同样走 `US`。商家自己的域名每次不同，没有列入，商家网站仍按其他规则走；需要整段走美国时，购物期间在客户端切到全局模式并把 GLOBAL 选为美国组，下单后再切回规则模式。
+
 规则的开头是 `AND,((PROTOCOL,UDP),(DST-PORT,443)),REJECT-NO-DROP`，拒绝 UDP 443 也就是 QUIC 流量。国内运营商对出境 UDP 限速和丢包都很重，QUIC 经节点的 UDP 转发时，X 这类 App 从后台切回来重新建连容易卡住，要等超时才退回 TCP；直接拒绝后 App 立即改用 TCP。这条必须排在所有域名规则之前，否则 x.com 等流量会先被后面的规则带走。国内直连的 App 也会随之改用 TCP，影响很小。唯一的例外是 Claude：在 Claude 上传图片仍比 Nextin Hub 生成的模板慢，而 Nextin 不拦 QUIC，上传可能走了 HTTP/3，所以在拒绝规则之前加了两条 `AND` 规则，让名字带 claude 的域名和 anthropic.com 的 UDP 443 走 `US`，作为对比试验。节点不支持 UDP 时，`udp-policy-not-supported-behaviour = REJECT` 会直接拒绝，Claude 照样立即退回 TCP。若试下来没有变快，删掉这两条即可。10 月 10 日随分流逻辑改成与 Nextin 一致时曾把拒绝规则和这两条例外一并删除、放开 QUIC，试下来仍不如 Nextin 快，已原样改回。
 
 ### URL 重写

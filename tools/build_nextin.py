@@ -101,6 +101,11 @@ TOKYO_TAIL = f"""  # 兜底 · 东京版追加：国内域名直连，其余域�
 # 个人规则按策略拆成四个规则集，依次匹配拒绝、直连、美国、东京；模块里直连与拒绝的条目本来就写在同类代理条目之前，顺序不受影响
 # 美国排在东京之前：两边的关键字规则若同时命中某个域名，宁可让账号类请求走美国，也不让它从日本登录
 TOKYO_SETS = {"REJECT": "reject", "DIRECT": "direct", TOKYO_US: "us", TOKYO_PROXY: "proxy"}
+# 这些分段的 QUIC（UDP 443）一律拒绝，App 立即改用 TCP。10 月 26 日的日志里 MEXC 对几乎每个接口域名都先发 QUIC 经住宅节点转发，
+# 一两秒后再对同一域名发 TCP，随后放弃主用域名、轮换镜像域名，与 base.conf 拦 QUIC 前的卡顿相同。分段的条目另外写进 no-quic.list，
+# 按规则原样走东京，只多一条排在个人规则之前的 AND 规则：UDP 443 且命中该规则集时拒绝。模板本身不拦 QUIC，其余服务不受影响
+TOKYO_NO_QUIC_SECTIONS = {"MEXC"}
+TOKYO_NO_QUIC = "no-quic"
 # 下载规则集也走代理：raw.githubusercontent.com 在国内直连经常不通
 TOKYO_PROVIDER = """  {name}:
     type: http
@@ -257,6 +262,7 @@ def tokyo(body):
     start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
     groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
     personal = {k: [] for k in TOKYO_SETS}
+    no_quic, no_quic_seen = [], set()
     cn_ip, out, section, us_seen = [], [], None, set()
     for line in body[end:].splitlines(keepends=True):
         if line in CN_DIRECT.splitlines(keepends=True):
@@ -269,6 +275,8 @@ def tokyo(body):
             name = m.group(1)
             section = name.split(" · ", 1)[1] if name.startswith("个人规则 · ") else None
             if section and not any(personal.values()):
+                out.append(f"  # 拒绝 QUIC · 只限规则集 rules/tokyo/{TOKYO_NO_QUIC}.list 里的域名，App 立即改用 TCP\n")
+                out.append(f"  - {q(f'AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-{TOKYO_NO_QUIC})),REJECT')}\n")
                 out.append("  # 个人规则 · 依次匹配拒绝、直连、美国、东京四个规则集，内容见 rules/tokyo/\n")
                 out += [f"  - {q(f'RULE-SET,tokyo-{v},{k}')}\n" for k, v in TOKYO_SETS.items()]
             if name.startswith("中国 IP"):
@@ -289,7 +297,11 @@ def tokyo(body):
                     us_seen.add(section or parts[1])
                 parts[i] = TOKYO_US if us else TOKYO_PROXY
             if section:
-                personal[parts.pop(i)].append(",".join(parts))
+                target = parts.pop(i)
+                personal[target].append(",".join(parts))
+                if section in TOKYO_NO_QUIC_SECTIONS and target not in BUILTIN:
+                    no_quic.append(",".join(parts))
+                    no_quic_seen.add(section)
                 continue
             if out[-1].startswith("  - \"RULE-SET,tokyo-cn-ip,"):
                 if parts[2] != "DIRECT" or parts[0] not in ("IP-CIDR", "IP-CIDR6"):
@@ -306,8 +318,12 @@ def tokyo(body):
     missing = (TOKYO_US_SECTIONS | TOKYO_US_GEOSITES) - us_seen
     if missing:
         raise SystemExit(f"找不到要走美国的分段或模板规则：{missing}")
+    missing = TOKYO_NO_QUIC_SECTIONS - no_quic_seen
+    if missing:
+        raise SystemExit(f"找不到要拒绝 QUIC 的分段：{missing}")
 
     lists = {f"{v}.list": personal[k] for k, v in TOKYO_SETS.items()}
+    lists[f"{TOKYO_NO_QUIC}.list"] = no_quic
     lists["cn-ip.list"] = cn_ip
     providers = "rule-providers:\n" + "".join(
         TOKYO_PROVIDER.format(

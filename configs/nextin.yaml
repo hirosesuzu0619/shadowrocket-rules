@@ -284,6 +284,7 @@ rules:
   # 个人规则 · TopCashback
   - "DOMAIN-KEYWORD,topcashback,US"
   - "DOMAIN-SUFFIX,tcb-cdn.com,US"
+  - "DOMAIN,app-2f29bdcb37191a00.mobileapi.usebutton.com,US"
   # 个人规则 · Trip.com
   - "DOMAIN-SUFFIX,trip.com,US"
   - "DOMAIN-SUFFIX,tripcdn.com,US"

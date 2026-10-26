@@ -260,6 +260,9 @@ DOMAIN-SUFFIX,t-mobile.com,US
 # 用关键字统一命中 topcashback.com 及各国站点（topcashback.co.uk 等）；tcb-cdn.com 是它的静态资源域名
 DOMAIN-KEYWORD,topcashback,US
 DOMAIN-SUFFIX,tcb-cdn.com,US
+# 10 月 26 日的日志里 App 还调用了 Button 的联盟归因接口，返现能否记到账号上与它有关；子域前缀是 TopCashback 在 Button 的应用编号，
+# 只列这一个，其他接入 Button 的 App 不受影响
+DOMAIN,app-2f29bdcb37191a00.mobileapi.usebutton.com,US
 
 # —— Trip.com ——
 # 10 月 25 日的日志里 trip.com、tripcdn.com 全被国内名单直连，m.trip.com、asryun 与 ubt-sin.tripcdn.com 解析到 Akamai 海外节点，直连全部超时

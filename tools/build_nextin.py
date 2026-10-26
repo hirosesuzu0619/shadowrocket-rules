@@ -59,8 +59,8 @@ TOKYO_PICK = "(日本|东京)"
 # 东京的两个组用 include-all-proxies，只收主订阅自己的节点，美国节点不会混进去，美国组也只用 use 引用 us，与节点名无关
 TOKYO_US = "🇺🇸 美国"
 US_PROVIDER = "us"
-# 这些个人规则分段走美国：AI 服务，以及按账号所在地钉在美国的希尔顿、美国金融与运营商、TopCashback 与 Trip.com。Siri、Apple TV+、X、交易所等其余分段走东京
-TOKYO_US_SECTIONS = {"Meta AI", "Claude", "Grok", "希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商", "TopCashback", "Trip.com"}
+# 这些个人规则分段走美国：AI 服务，以及按账号所在地钉在美国的希尔顿、美国金融与运营商、TopCashback、返利联盟跳转与 Trip.com。Siri、Apple TV+、X、交易所等其余分段走东京
+TOKYO_US_SECTIONS = {"Meta AI", "Claude", "Grok", "希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商", "TopCashback", "联盟平台跳转（返利）", "Trip.com"}
 # 模板里这几条 GEOSITE 规则也走美国：OpenAI、Anthropic、Google Gemini 与 AI 平台合集
 TOKYO_US_GEOSITES = {"openai", "anthropic", "google-gemini", "category-ai-!cn"}
 TOKYO_GROUPS = f"""proxy-groups:

@@ -268,6 +268,7 @@ var RULES = [
   "DOMAIN-SUFFIX,t-mobile.com,US",
   "DOMAIN-KEYWORD,topcashback,US",
   "DOMAIN-SUFFIX,tcb-cdn.com,US",
+  "DOMAIN,app-2f29bdcb37191a00.mobileapi.usebutton.com,US",
   "DOMAIN-SUFFIX,trip.com,US",
   "DOMAIN-SUFFIX,tripcdn.com,US",
   "DOMAIN,ubtlog.ctrip.com,US",

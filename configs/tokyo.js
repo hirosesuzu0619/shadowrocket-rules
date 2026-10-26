@@ -81,6 +81,15 @@ var RULE_PROVIDERS = {
     "interval": 3600,
     "proxy": "🚀 节点选择"
   },
+  "tokyo-no-quic": {
+    "type": "http",
+    "behavior": "classical",
+    "format": "text",
+    "url": "https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/rules/tokyo/no-quic.list",
+    "path": "./rules/tokyo-no-quic.list",
+    "interval": 3600,
+    "proxy": "🚀 节点选择"
+  },
   "tokyo-cn-ip": {
     "type": "http",
     "behavior": "ipcidr",
@@ -122,6 +131,7 @@ var RULES = [
   "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
   "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
   "IP-CIDR6,ff00::/8,DIRECT,no-resolve",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-no-quic)),REJECT",
   "RULE-SET,tokyo-reject,REJECT",
   "RULE-SET,tokyo-direct,DIRECT",
   "RULE-SET,tokyo-us,🇺🇸 美国",

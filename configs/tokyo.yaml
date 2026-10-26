@@ -80,6 +80,14 @@ rule-providers:
     path: ./rules/tokyo-proxy.list
     interval: 3600
     proxy: "🚀 节点选择"
+  tokyo-no-quic:
+    type: http
+    behavior: classical
+    format: text
+    url: "https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/rules/tokyo/no-quic.list"
+    path: ./rules/tokyo-no-quic.list
+    interval: 3600
+    proxy: "🚀 节点选择"
   tokyo-cn-ip:
     type: http
     behavior: ipcidr
@@ -121,6 +129,8 @@ rules:
   - "IP-CIDR6,fc00::/7,DIRECT,no-resolve"
   - "IP-CIDR6,fe80::/10,DIRECT,no-resolve"
   - "IP-CIDR6,ff00::/8,DIRECT,no-resolve"
+  # 拒绝 QUIC · 只限规则集 rules/tokyo/no-quic.list 里的域名，App 立即改用 TCP
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-no-quic)),REJECT"
   # 个人规则 · 依次匹配拒绝、直连、美国、东京四个规则集，内容见 rules/tokyo/
   - "RULE-SET,tokyo-reject,REJECT"
   - "RULE-SET,tokyo-direct,DIRECT"

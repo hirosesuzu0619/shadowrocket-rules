@@ -10,6 +10,7 @@
 
 另外生成东京静态住宅 IP 订阅用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
 AI 与美国账户类服务走另一份美国订阅的节点，其余代理分组合并成东京一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
+再从东京版派生甲骨文美国单节点用的 configs/oracle.js：规则相同，不分东京与美国，全局拒绝 QUIC，订阅没有 DNS 时补上。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -125,6 +126,19 @@ TOKYO_PROXY_PROVIDERS = f"""proxy-providers:
     interval: 86400
     proxy: "{TOKYO_PROXY}"
 """
+# 订阅 DNS 设置引用的规则集要留下，东京版与甲骨文版的 main 共用这一段
+KEEP_DNS_PROVIDERS = """  // 订阅自带的 DNS 设置可能用 rule-set:名称 引用订阅里的规则集（如 nameserver-policy、fake-ip-filter 里的 cn-domain），
+  // 整体换掉规则集时内核会报 not found rule-set 而拒绝加载，所以把 DNS 引用到的那几个保留下来
+  var old = config["rule-providers"] || {};
+  var providers = {};
+  var refs = JSON.stringify(config["dns"] || {}).match(/rule-set:[^"]+/g) || [];
+  refs.forEach(function (ref) {
+    ref.slice(9).split(",").forEach(function (name) {
+      if (old[name]) providers[name] = old[name];
+    });
+  });
+  for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
+"""
 # tokyo.js 的 main：在通用的替换之外，处理美国订阅链接与订阅 DNS 引用的规则集
 TOKYO_MAIN = f"""// 美国订阅链接填在下面的引号里，保存后重新激活订阅即可。仓库是公开的，填好的脚本只留在本机，不要提交回来。
 // 留空时不建美国组，AI 与美国金融等规则一并走「{TOKYO_PROXY}」，与只有东京订阅时一样。
@@ -136,18 +150,7 @@ var TOKYO_US = {json.dumps(TOKYO_US, ensure_ascii=False)};
 function main(config) {{
   var groups = PROXY_GROUPS;
   var rules = RULES;
-  // 订阅自带的 DNS 设置可能用 rule-set:名称 引用订阅里的规则集（如 nameserver-policy、fake-ip-filter 里的 cn-domain），
-  // 整体换掉规则集时内核会报 not found rule-set 而拒绝加载，所以把 DNS 引用到的那几个保留下来
-  var old = config["rule-providers"] || {{}};
-  var providers = {{}};
-  var refs = JSON.stringify(config["dns"] || {{}}).match(/rule-set:[^"]+/g) || [];
-  refs.forEach(function (ref) {{
-    ref.slice(9).split(",").forEach(function (name) {{
-      if (old[name]) providers[name] = old[name];
-    }});
-  }});
-  for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
-  if (US_SUBSCRIPTION) {{
+{KEEP_DNS_PROVIDERS}  if (US_SUBSCRIPTION) {{
     var us = JSON.parse(JSON.stringify(PROXY_PROVIDERS[{json.dumps(US_PROVIDER)}]));
     us.url = US_SUBSCRIPTION;
     config["proxy-providers"] = config["proxy-providers"] || {{}};
@@ -159,6 +162,34 @@ function main(config) {{
   config["proxy-groups"] = groups;
   config["rule-providers"] = providers;
   config["rules"] = rules;
+  return config;
+}}
+"""
+
+# 甲骨文美国单节点版：订阅只有一个美国 VLESS 节点，规则沿用东京版，不分东京与美国，原先走「🇺🇸 美国」的也走「🚀 节点选择」。
+# 节点名不带日本、东京，所以去掉「🚀 节点选择」的筛选；节点凭据留在本机的订阅文件里，脚本不含任何秘密，Clash Mi 可以直接按 raw 链接加载
+ORACLE_JS = ROOT / "configs" / "oracle.js"
+# 全局拒绝 QUIC，App 立即改用 TCP。Vision 的 TLS 直通只对 TCP 生效，QUIC 只能装进 XUDP、再塞进同一条 TCP 隧道，
+# 既丢了 QUIC 自身的优势，又失去 Vision 的直通，通常比直接走 TCP 慢；这条取代东京版只拒绝 no-quic.list 的那条
+ORACLE_QUIC = "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT"
+# 订阅没有开启 DNS 时补上这一份。东京订阅自带 DNS，甲骨文的配置文件没有，套上只换分组与规则的覆写后内核没有 DNS 可用。
+# 用国内 DoH 解析：兜底前「本机解析落在国内 IP 段的也直连」那一层靠它把苹果、微软这类有国内 CDN 的服务留在直连；
+# fake-ip 下走代理的连接只把域名交给节点，不受国内解析结果影响
+ORACLE_DNS = {
+    "enable": True,
+    "enhanced-mode": "fake-ip",
+    "fake-ip-range": "198.18.0.1/16",
+    "fake-ip-filter": ["*.lan", "*.local", "+.msftconnecttest.com", "+.msftncsi.com", "time.*.com", "+.ntp.org", "+.stun.*.*"],
+    "default-nameserver": ["223.5.5.5", "119.29.29.29"],
+    "nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
+}
+ORACLE_MAIN = f"""var DNS = {json.dumps(ORACLE_DNS, ensure_ascii=False, indent=2)};
+
+function main(config) {{
+{KEEP_DNS_PROVIDERS}  if (!config["dns"] || !config["dns"]["enable"]) config["dns"] = DNS;
+  config["proxy-groups"] = PROXY_GROUPS;
+  config["rule-providers"] = providers;
+  config["rules"] = RULES;
   return config;
 }}
 """
@@ -339,6 +370,34 @@ def tokyo(body):
     return body[:start] + TOKYO_GROUPS + "\n" + TOKYO_PROXY_PROVIDERS + "\n" + providers + "".join(out), lists
 
 
+def write_oracle(text):
+    """从 tokyo.yaml 派生甲骨文单节点版的 oracle.js：去掉美国组与「🚀 节点选择」的筛选，美国规则改走它，
+    只拒绝 no-quic.list 的 QUIC 规则换成全局拒绝，不再需要的 no-quic 规则集一并去掉。规则集链接与东京版相同，改规则两边同时生效。"""
+    conf = yaml.safe_load(text)
+    groups = [g for g in conf["proxy-groups"] if g["name"] != TOKYO_US]
+    for g in groups:
+        g.pop("filter", None)
+    no_quic = f"tokyo-{TOKYO_NO_QUIC}"
+    providers = {k: v for k, v in conf["rule-providers"].items() if k != no_quic}
+    rules = [ORACLE_QUIC if no_quic in r else r.replace("," + TOKYO_US, "," + TOKYO_PROXY) for r in conf["rules"]]
+    if rules.count(ORACLE_QUIC) != 1 or any(TOKYO_US in r for r in rules):
+        raise SystemExit("东京版的 QUIC 规则或美国规则与预期不符，oracle.js 没有生成")
+    intro = [
+        "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
+        "甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」，全局拒绝 QUIC。",
+        "订阅里的节点原样保留；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。",
+    ]
+    js = (
+        "".join(f"// {line}\n" for line in intro)
+        + "var PROXY_GROUPS = " + json.dumps(groups, ensure_ascii=False, indent=2) + ";\n\n"
+        + "var RULE_PROVIDERS = " + json.dumps(providers, ensure_ascii=False, indent=2) + ";\n\n"
+        + "var RULES = [\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in rules) + "\n];\n\n"
+        + ORACLE_MAIN
+    )
+    ORACLE_JS.write_text(js, encoding="utf-8")
+    print(f"wrote {ORACLE_JS.relative_to(ROOT)}: {len(groups)} groups, {len(rules)} rules")
+
+
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else URL_FILE.read_text().strip()
     template = load_template(src)
@@ -441,6 +500,7 @@ def main():
         "订阅 DNS 设置引用到的规则集一并保留；填了美国订阅链接时再加入美国节点。",
         "个人规则与国内 IP 段放在仓库的 rules/tokyo/ 下，由内核按链接定时下载；改了规则不必重新粘贴本脚本。",
     ], TOKYO_MAIN)
+    write_oracle(out)
 
 
 if __name__ == "__main__":

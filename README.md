@@ -111,3 +111,11 @@ Clash Verge 的扩展脚本保存在本地，不能像订阅那样填链接自�
 在 Clash Verge 里的用法：住宅 IP 的订阅照常导入，然后在「订阅」页对它右键选「扩展脚本」，编辑框里原有的示例代码全部删掉，换成 `configs/tokyo.js` 的全部内容，保存后对这份订阅点「使用」重新激活。也可以粘贴到下方的「全局扩展脚本」，那样会作用于所有订阅。脚本只替换订阅里的代理组、规则集与规则，节点、DNS 等设置保持订阅原样，Clash Mi 的 JS 覆写也能直接用它。订阅的 DNS 设置若用 `rule-set:名称` 引用订阅自带的规则集，脚本会把这几个规则集留下：东京订阅的 `nameserver-policy` 与 `fake-ip-filter` 都引用了 `cn-domain`，10 月 25 日之前的脚本把规则集整个换掉，内核会因找不到 `cn-domain` 拒绝加载配置。还要注意这份订阅的 DNS 是 fake-ip 模式，默认经 `🚀 节点选择` 查询 Google 与 Cloudflare 的 DoH，只有 `cn-domain` 里的域名用阿里与腾讯的 DNS，所以兜底前「本机解析落在国内 IP 段的也直连」那一层，对名单外的苹果、微软这类服务基本起不到作用，它们会解析到境外地址并走东京。第一次启用时内核要先下载规则集，稍等几秒再看「规则」页是否已列出四个规则集。不同版本的菜单名称可能略有差异。
 
 在 Clash Mi 里，覆写按链接加载才会自动更新，但仓库里的 `tokyo.js` 没有美国订阅链接，链接又不能进公开仓库。所以由 `.github/workflows/tokyo-gist.yml` 代劳：默认分支上的 `configs/tokyo.js` 一有变化（或在 Actions 页手动运行），就把仓库 Secret `US_SUBSCRIPTION` 里的链接填进去，写到私密 Gist 的 `tokyo-us.js`，Clash Mi 用「添加配置链接」引用这个 Gist 的 raw 地址 `https://gist.githubusercontent.com/<用户名>/<Gist 编号>/raw/tokyo-us.js`（不带版本号，始终指向最新内容）。需要三个 Secret：`US_SUBSCRIPTION`、`GIST_ID`（Gist 网址最后那串编号）、`GIST_TOKEN`（只勾 gist 权限的令牌）。私密 Gist 只是不公开列出，拿到地址的人都能读，所以 raw 地址与订阅链接一样要保密；仓库的 Actions 日志是公开的，工作流不打印任何 Secret。美国订阅链接变了只需改 `US_SUBSCRIPTION` 再手动运行一次；令牌失效时运行会失败并提示 HTTP 401。
+
+## configs/oracle.js
+
+甲骨文美国单节点配置用的覆写。这份配置是一个本地的 mihomo 文件，只有一个 VLESS Reality 节点，原本只有四条规则。它的节点凭据不能进公开仓库，所以节点仍留在本机那份配置里，仓库只放覆写：规则与东京版完全相同，规则集也引用同一组 `rules/tokyo/` 链接，改 `personal.module` 并合并后两边同时更新。由 `tools/build_nextin.py` 从 `configs/tokyo.yaml` 派生，和其他文件一起生成，不要手工编辑。
+
+和 `tokyo.js` 的区别有四处。没有美国组，原先走 `🇺🇸 美国` 的 AI 与美国账户类规则一律走 `🚀 节点选择`，也就是这一个节点；`🚀 节点选择` 去掉了 `(日本|东京)` 筛选，节点名不带这两个字也能手动选。MEXC、Bybit、OKX 这些原本从东京出去的规则同样改从美国出去，这几家限制美国用户，用这份配置时最好别登录。QUIC 改为全局拒绝，不再只拒绝 `no-quic.list`：Vision 的 TLS 直通只对 TCP 生效，QUIC 只能装进 XUDP 再走同一条 TCP 隧道，通常不如直接走 TCP，拒绝后 App 立即改用 TCP。最后，订阅没有开启 DNS 时补一份 fake-ip、国内 DoH 的 DNS 设置：东京订阅自带 DNS，甲骨文这份没有，10 月 28 日把只换分组与规则的 `tokyo-us.js` 套在它上面，Clash Mi 连不上网，而用内置覆写可以上网，推断是缺 DNS 所致。订阅自己开了 DNS 时脚本不动它。
+
+在 Clash Mi 里的用法与 `clashmi.js` 相同：「核心设置 → 覆写」里添加配置链接，类型选 JS，链接填 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/oracle.js`，再在甲骨文那份配置的自定义覆写里选中它。脚本不含秘密，直接按 raw 链接加载即可，不需要 Gist。生成时只用 Node 把脚本套在这份配置上检查过分组、规则与规则集的引用，没有用 mihomo 实际加载。

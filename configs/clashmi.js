@@ -325,7 +325,7 @@ var RULES = [
   "DOMAIN-SUFFIX,argent-api.com,SG",
   "DOMAIN-SUFFIX,dune.com,SG",
   "DOMAIN-SUFFIX,coca.xyz,SG",
-  "DOMAIN-SUFFIX,oracle.com,JP",
+  "DOMAIN-KEYWORD,oracle,JP",
   "DOMAIN-SUFFIX,luluwu.org,DIRECT",
   "DOMAIN-SUFFIX,weijingle.com,DIRECT",
   "DOMAIN-SUFFIX,ccb.com,DIRECT",

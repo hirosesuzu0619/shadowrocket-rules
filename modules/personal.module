@@ -332,7 +332,9 @@ DOMAIN-SUFFIX,coca.xyz,SG
 
 # —— Oracle ——
 # geosite 的 cn 名单收录了 +.oracle.com（甲骨文有国内加速节点），Clash 东京版此前在 GEOSITE,cn 命中直连；这里显式走日本
-DOMAIN-SUFFIX,oracle.com,JP
+# 甲骨文云的控制台与接口在 oraclecloud.com，自治数据库与 APEX 应用在 oraclecloudapps.com，官网还引用 oracleinfinity.io、oracleimg.com，按后缀逐个列容易漏，改用关键字统一命中
+# 代价是名字里带 oracle 的其他网站也会走日本，目前没有发现常用的此类域名
+DOMAIN-KEYWORD,oracle,JP
 
 # —— 国内直连 ——
 # 来自设备上的旧手动规则；Nextin 模板没有国内域名名单，未命中规则的域名一律走代理，这两个国内站点需要显式直连

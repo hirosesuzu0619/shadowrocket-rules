@@ -344,7 +344,7 @@ rules:
   - "DOMAIN-SUFFIX,dune.com,SG"
   - "DOMAIN-SUFFIX,coca.xyz,SG"
   # 个人规则 · Oracle
-  - "DOMAIN-SUFFIX,oracle.com,JP"
+  - "DOMAIN-KEYWORD,oracle,JP"
   # 个人规则 · 国内直连
   - "DOMAIN-SUFFIX,luluwu.org,DIRECT"
   - "DOMAIN-SUFFIX,weijingle.com,DIRECT"

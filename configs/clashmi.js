@@ -120,6 +120,16 @@ var PROXY_GROUPS = [
     "tolerance": 50,
     "timeout": 5000,
     "include-all": true
+  },
+  {
+    "name": "JP",
+    "type": "url-test",
+    "filter": "(?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\\bJP\\b|🇯🇵)",
+    "url": "http://www.gstatic.com/generate_204",
+    "interval": 300,
+    "tolerance": 50,
+    "timeout": 5000,
+    "include-all": true
   }
 ];
 
@@ -315,6 +325,7 @@ var RULES = [
   "DOMAIN-SUFFIX,argent-api.com,SG",
   "DOMAIN-SUFFIX,dune.com,SG",
   "DOMAIN-SUFFIX,coca.xyz,SG",
+  "DOMAIN-SUFFIX,oracle.com,JP",
   "DOMAIN-SUFFIX,luluwu.org,DIRECT",
   "DOMAIN-SUFFIX,weijingle.com,DIRECT",
   "DOMAIN-SUFFIX,ccb.com,DIRECT",

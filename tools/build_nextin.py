@@ -10,7 +10,8 @@
 
 另外生成东京静态住宅 IP 订阅用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
 AI 与美国账户类服务走另一份美国订阅的节点，其余代理分组合并成东京一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
-再从东京版派生甲骨文美国单节点用的 configs/oracle.js：规则相同，不分东京与美国，全局拒绝 QUIC，订阅没有 DNS 时补上。
+再从东京版派生甲骨文美国单节点用的 configs/oracle.js：规则相同，不分东京与美国，订阅没有 DNS 时补上。
+这两版都只拒绝走代理的 QUIC，直连的照常放行。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
 """
@@ -102,11 +103,10 @@ TOKYO_TAIL = f"""  # 兜底 · 东京版追加：国内域名直连，其余域�
 # 个人规则按策略拆成四个规则集，依次匹配拒绝、直连、美国、东京；模块里直连与拒绝的条目本来就写在同类代理条目之前，顺序不受影响
 # 美国排在东京之前：两边的关键字规则若同时命中某个域名，宁可让账号类请求走美国，也不让它从日本登录
 TOKYO_SETS = {"REJECT": "reject", "DIRECT": "direct", TOKYO_US: "us", TOKYO_PROXY: "proxy"}
-# 这些分段的 QUIC（UDP 443）一律拒绝，App 立即改用 TCP。10 月 26 日的日志里 MEXC 对几乎每个接口域名都先发 QUIC 经住宅节点转发，
-# 一两秒后再对同一域名发 TCP，随后放弃主用域名、轮换镜像域名，与 base.conf 拦 QUIC 前的卡顿相同。分段的条目另外写进 no-quic.list，
-# 按规则原样走东京，只多一条排在个人规则之前的 AND 规则：UDP 443 且命中该规则集时拒绝。模板本身不拦 QUIC，其余服务不受影响
-TOKYO_NO_QUIC_SECTIONS = {"MEXC"}
-TOKYO_NO_QUIC = "no-quic"
+# 走代理的 QUIC（UDP 443）一律拒绝，App 立即改用 TCP；直连的照常放行。节点协议都跑在 TCP 上，QUIC 只能装进 TCP 隧道，
+# 既丢了自身抗丢包的优势，又要与外层 TCP 的重传、拥塞控制叠加，10 月 26 日 MEXC 的卡顿即由此而来。
+# 每条指向代理分组的规则前插一条条件相同、只多 UDP 443 的拒绝规则，MATCH 前插一条只看 UDP 443 的，直连规则不受影响
+QUIC = "(NETWORK,UDP),(DST-PORT,443)"
 # 下载规则集也走代理：raw.githubusercontent.com 在国内直连经常不通
 TOKYO_PROVIDER = """  {name}:
     type: http
@@ -169,9 +169,6 @@ function main(config) {{
 # 甲骨文美国单节点版：订阅只有一个美国 VLESS 节点，规则沿用东京版，不分东京与美国，原先走「🇺🇸 美国」的也走「🚀 节点选择」。
 # 节点名不带日本、东京，所以去掉「🚀 节点选择」的筛选；节点凭据留在本机的订阅文件里，脚本不含任何秘密，Clash Mi 可以直接按 raw 链接加载
 ORACLE_JS = ROOT / "configs" / "oracle.js"
-# 全局拒绝 QUIC，App 立即改用 TCP。Vision 的 TLS 直通只对 TCP 生效，QUIC 只能装进 XUDP、再塞进同一条 TCP 隧道，
-# 既丢了 QUIC 自身的优势，又失去 Vision 的直通，通常比直接走 TCP 慢；这条取代东京版只拒绝 no-quic.list 的那条
-ORACLE_QUIC = "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT"
 # 订阅没有开启 DNS 时补上这一份。东京订阅自带 DNS，甲骨文的配置文件没有，套上只换分组与规则的覆写后内核没有 DNS 可用。
 # 用国内 DoH 解析：兜底前「本机解析落在国内 IP 段的也直连」那一层靠它把苹果、微软这类有国内 CDN 的服务留在直连；
 # fake-ip 下走代理的连接只把域名交给节点，不受国内解析结果影响
@@ -297,7 +294,6 @@ def tokyo(body):
     start, end = body.index("\nproxy-groups:\n") + 1, body.index(GROUPS_ANCHOR)
     groups = set(re.findall(r'^  - name: "(.+)"$', body[start:end], re.M))
     personal = {k: [] for k in TOKYO_SETS}
-    no_quic, no_quic_seen = [], set()
     cn_ip, out, section, us_seen = [], [], None, set()
     for line in body[end:].splitlines(keepends=True):
         if line in CN_DIRECT.splitlines(keepends=True):
@@ -310,8 +306,6 @@ def tokyo(body):
             name = m.group(1)
             section = name.split(" · ", 1)[1] if name.startswith("个人规则 · ") else None
             if section and not any(personal.values()):
-                out.append(f"  # 拒绝 QUIC · 只限规则集 rules/tokyo/{TOKYO_NO_QUIC}.list 里的域名，App 立即改用 TCP\n")
-                out.append(f"  - {q(f'AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-{TOKYO_NO_QUIC})),REJECT')}\n")
                 out.append("  # 个人规则 · 依次匹配拒绝、直连、美国、东京四个规则集，内容见 rules/tokyo/\n")
                 out += [f"  - {q(f'RULE-SET,tokyo-{v},{k}')}\n" for k, v in TOKYO_SETS.items()]
             if name.startswith("中国 IP"):
@@ -334,9 +328,6 @@ def tokyo(body):
             if section:
                 target = parts.pop(i)
                 personal[target].append(",".join(parts))
-                if section in TOKYO_NO_QUIC_SECTIONS and target not in BUILTIN:
-                    no_quic.append(",".join(parts))
-                    no_quic_seen.add(section)
                 continue
             if out[-1].startswith("  - \"RULE-SET,tokyo-cn-ip,"):
                 if parts[2] != "DIRECT" or parts[0] not in ("IP-CIDR", "IP-CIDR6"):
@@ -353,12 +344,8 @@ def tokyo(body):
     missing = (TOKYO_US_SECTIONS | TOKYO_US_GEOSITES) - us_seen
     if missing:
         raise SystemExit(f"找不到要走美国的分段或模板规则：{missing}")
-    missing = TOKYO_NO_QUIC_SECTIONS - no_quic_seen
-    if missing:
-        raise SystemExit(f"找不到要拒绝 QUIC 的分段：{missing}")
 
     lists = {f"{v}.list": personal[k] for k, v in TOKYO_SETS.items()}
-    lists[f"{TOKYO_NO_QUIC}.list"] = no_quic
     lists["cn-ip.list"] = cn_ip
     providers = "rule-providers:\n" + "".join(
         TOKYO_PROVIDER.format(
@@ -371,26 +358,44 @@ def tokyo(body):
         )
         for f in lists
     )
-    return body[:start] + TOKYO_GROUPS + "\n" + TOKYO_PROXY_PROVIDERS + "\n" + providers + "".join(out), lists
+    return body[:start] + TOKYO_GROUPS + "\n" + TOKYO_PROXY_PROVIDERS + "\n" + providers + reject_proxied_quic(out), lists
+
+
+def reject_proxied_quic(lines):
+    """在每条指向代理分组的规则前插一条拒绝 QUIC 的 AND 规则，见 QUIC 的说明。"""
+    out = []
+    # TOKYO_TAIL 等是多行的整块，先拆成单行
+    for line in "".join(lines).splitlines(keepends=True):
+        m = re.fullmatch(r'  - "(.+)"\n?', line)
+        if m:
+            parts = m.group(1).split(",")
+            i = 1 if parts[0] == "MATCH" else 2
+            if parts[i] not in BUILTIN:
+                # 逻辑规则与带 no-resolve 等参数的规则套进 AND 需另行处理，目前没有，出现时直接报错
+                if parts[0] in ("AND", "OR", "NOT") or len(parts) != i + 1:
+                    raise SystemExit(f"无法为这条规则插入 QUIC 拒绝：{m.group(1)}")
+                cond = QUIC if parts[0] == "MATCH" else f"{QUIC},({','.join(parts[:2])})"
+                out.append(f"  - {q(f'AND,({cond}),REJECT')}\n")
+        out.append(line)
+    return "".join(out)
 
 
 def write_oracle(text):
-    """从 tokyo.yaml 派生甲骨文单节点版的 oracle.js：去掉美国组与「🚀 节点选择」的筛选，美国规则改走它，
-    只拒绝 no-quic.list 的 QUIC 规则换成全局拒绝，不再需要的 no-quic 规则集一并去掉。规则集链接与东京版相同，改规则两边同时生效。"""
+    """从 tokyo.yaml 派生甲骨文单节点版的 oracle.js：去掉美国组与「🚀 节点选择」的筛选，美国规则改走它。
+    拒绝走代理的 QUIC 的规则原样沿用。规则集链接与东京版相同，改规则两边同时生效。"""
     conf = yaml.safe_load(text)
     groups = [g for g in conf["proxy-groups"] if g["name"] != TOKYO_US]
     for g in groups:
         g.pop("filter", None)
-    no_quic = f"tokyo-{TOKYO_NO_QUIC}"
-    providers = {k: v for k, v in conf["rule-providers"].items() if k != no_quic}
+    providers = conf["rule-providers"]
     if ORACLE_DROP not in conf["rules"]:
         raise SystemExit(f"东京版里找不到 {ORACLE_DROP}，oracle.js 没有生成")
-    rules = [ORACLE_QUIC if no_quic in r else r.replace("," + TOKYO_US, "," + TOKYO_PROXY) for r in conf["rules"] if r != ORACLE_DROP]
-    if rules.count(ORACLE_QUIC) != 1 or any(TOKYO_US in r for r in rules):
-        raise SystemExit("东京版的 QUIC 规则或美国规则与预期不符，oracle.js 没有生成")
+    rules = [r.replace("," + TOKYO_US, "," + TOKYO_PROXY) for r in conf["rules"] if r != ORACLE_DROP]
+    if any(TOKYO_US in r for r in rules):
+        raise SystemExit("东京版的美国规则与预期不符，oracle.js 没有生成")
     intro = [
         "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
-        "甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」，全局拒绝 QUIC。",
+        "甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」。",
         "订阅里的节点原样保留；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。",
     ]
     js = (

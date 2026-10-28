@@ -81,15 +81,6 @@ var RULE_PROVIDERS = {
     "interval": 3600,
     "proxy": "🚀 节点选择"
   },
-  "tokyo-no-quic": {
-    "type": "http",
-    "behavior": "classical",
-    "format": "text",
-    "url": "https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/rules/tokyo/no-quic.list",
-    "path": "./rules/tokyo-no-quic.list",
-    "interval": 3600,
-    "proxy": "🚀 节点选择"
-  },
   "tokyo-cn-ip": {
     "type": "http",
     "behavior": "ipcidr",
@@ -131,21 +122,28 @@ var RULES = [
   "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
   "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
   "IP-CIDR6,ff00::/8,DIRECT,no-resolve",
-  "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-no-quic)),REJECT",
   "RULE-SET,tokyo-reject,REJECT",
   "RULE-SET,tokyo-direct,DIRECT",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-us)),REJECT",
   "RULE-SET,tokyo-us,🇺🇸 美国",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-proxy)),REJECT",
   "RULE-SET,tokyo-proxy,🚀 节点选择",
   "GEOSITE,category-ads-all,REJECT",
   "GEOSITE,tracker,REJECT",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,openai)),REJECT",
   "GEOSITE,openai,🇺🇸 美国",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,anthropic)),REJECT",
   "GEOSITE,anthropic,🇺🇸 美国",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,google-gemini)),REJECT",
   "GEOSITE,google-gemini,🇺🇸 美国",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,category-ai-!cn)),REJECT",
   "GEOSITE,category-ai-!cn,🇺🇸 美国",
   "RULE-SET,tokyo-cn-ip,DIRECT,no-resolve",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,gfw)),REJECT",
   "GEOSITE,gfw,🚀 节点选择",
   "GEOSITE,cn,DIRECT",
   "RULE-SET,tokyo-cn-ip,DIRECT",
+  "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT",
   "MATCH,🚀 节点选择"
 ];
 

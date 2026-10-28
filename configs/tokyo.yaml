@@ -80,14 +80,6 @@ rule-providers:
     path: ./rules/tokyo-proxy.list
     interval: 3600
     proxy: "🚀 节点选择"
-  tokyo-no-quic:
-    type: http
-    behavior: classical
-    format: text
-    url: "https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/rules/tokyo/no-quic.list"
-    path: ./rules/tokyo-no-quic.list
-    interval: 3600
-    proxy: "🚀 节点选择"
   tokyo-cn-ip:
     type: http
     behavior: ipcidr
@@ -129,30 +121,36 @@ rules:
   - "IP-CIDR6,fc00::/7,DIRECT,no-resolve"
   - "IP-CIDR6,fe80::/10,DIRECT,no-resolve"
   - "IP-CIDR6,ff00::/8,DIRECT,no-resolve"
-  # 拒绝 QUIC · 只限规则集 rules/tokyo/no-quic.list 里的域名，App 立即改用 TCP
-  - "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-no-quic)),REJECT"
   # 个人规则 · 依次匹配拒绝、直连、美国、东京四个规则集，内容见 rules/tokyo/
   - "RULE-SET,tokyo-reject,REJECT"
   - "RULE-SET,tokyo-direct,DIRECT"
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-us)),REJECT"
   - "RULE-SET,tokyo-us,🇺🇸 美国"
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-proxy)),REJECT"
   - "RULE-SET,tokyo-proxy,🚀 节点选择"
   # 广告拦截 · Nextin bundled MRS
   - "GEOSITE,category-ads-all,REJECT"
   # 追踪器 · Nextin bundled MRS
   - "GEOSITE,tracker,REJECT"
   # OpenAI · Nextin bundled MRS
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,openai)),REJECT"
   - "GEOSITE,openai,🇺🇸 美国"
   # Anthropic · Nextin bundled MRS
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,anthropic)),REJECT"
   - "GEOSITE,anthropic,🇺🇸 美国"
   # Google Gemini · Nextin bundled MRS
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,google-gemini)),REJECT"
   - "GEOSITE,google-gemini,🇺🇸 美国"
   # AI 平台合集 · Nextin bundled MRS
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,category-ai-!cn)),REJECT"
   - "GEOSITE,category-ai-!cn,🇺🇸 美国"
   # 中国 IP · 规则集 rules/tokyo/cn-ip.list
   - "RULE-SET,tokyo-cn-ip,DIRECT,no-resolve"
   # GFW 列表 · Nextin bundled MRS
+  - "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,gfw)),REJECT"
   - "GEOSITE,gfw,🚀 节点选择"
   # 兜底 · 东京版追加：国内域名直连，其余域名在本机解析，落在国内 IP 段的也直连，剩下的走代理
   - "GEOSITE,cn,DIRECT"
   - "RULE-SET,tokyo-cn-ip,DIRECT"
+  - "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT"
   - "MATCH,🚀 节点选择"

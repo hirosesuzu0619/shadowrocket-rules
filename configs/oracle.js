@@ -1,5 +1,5 @@
 // 本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。
-// 甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」，全局拒绝 QUIC。
+// 甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」。
 // 订阅里的节点原样保留；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。
 var PROXY_GROUPS = [
   {
@@ -99,21 +99,28 @@ var RULES = [
   "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
   "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
   "IP-CIDR6,ff00::/8,DIRECT,no-resolve",
-  "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT",
   "RULE-SET,tokyo-reject,REJECT",
   "RULE-SET,tokyo-direct,DIRECT",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-us)),REJECT",
   "RULE-SET,tokyo-us,🚀 节点选择",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-proxy)),REJECT",
   "RULE-SET,tokyo-proxy,🚀 节点选择",
   "GEOSITE,category-ads-all,REJECT",
   "GEOSITE,tracker,REJECT",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,openai)),REJECT",
   "GEOSITE,openai,🚀 节点选择",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,anthropic)),REJECT",
   "GEOSITE,anthropic,🚀 节点选择",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,google-gemini)),REJECT",
   "GEOSITE,google-gemini,🚀 节点选择",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,category-ai-!cn)),REJECT",
   "GEOSITE,category-ai-!cn,🚀 节点选择",
   "RULE-SET,tokyo-cn-ip,DIRECT,no-resolve",
+  "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,gfw)),REJECT",
   "GEOSITE,gfw,🚀 节点选择",
   "GEOSITE,cn,DIRECT",
   "RULE-SET,tokyo-cn-ip,DIRECT",
+  "AND,((NETWORK,UDP),(DST-PORT,443)),REJECT",
   "MATCH,🚀 节点选择"
 ];
 

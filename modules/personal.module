@@ -330,6 +330,10 @@ DOMAIN-SUFFIX,argent-api.com,SG
 DOMAIN-SUFFIX,dune.com,SG
 DOMAIN-SUFFIX,coca.xyz,SG
 
+# —— Oracle ——
+# geosite 的 cn 名单收录了 +.oracle.com（甲骨文有国内加速节点），Clash 东京版此前在 GEOSITE,cn 命中直连；这里显式走日本
+DOMAIN-SUFFIX,oracle.com,JP
+
 # —— 国内直连 ——
 # 来自设备上的旧手动规则；Nextin 模板没有国内域名名单，未命中规则的域名一律走代理，这两个国内站点需要显式直连
 DOMAIN-SUFFIX,luluwu.org,DIRECT

@@ -119,6 +119,15 @@ proxy-groups:
     tolerance: 50
     timeout: 5000
 
+  - name: "JP"
+    type: url-test
+    include-all-proxies: true
+    filter: "(?i)(日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|\\bJP\\b|🇯🇵)"
+    url: "http://www.gstatic.com/generate_204"
+    interval: 300
+    tolerance: 50
+    timeout: 5000
+
 rules:
   # 私有网络 · Nextin bundled MRS
   - "GEOSITE,private,DIRECT"
@@ -334,6 +343,8 @@ rules:
   - "DOMAIN-SUFFIX,argent-api.com,SG"
   - "DOMAIN-SUFFIX,dune.com,SG"
   - "DOMAIN-SUFFIX,coca.xyz,SG"
+  # 个人规则 · Oracle
+  - "DOMAIN-SUFFIX,oracle.com,JP"
   # 个人规则 · 国内直连
   - "DOMAIN-SUFFIX,luluwu.org,DIRECT"
   - "DOMAIN-SUFFIX,weijingle.com,DIRECT"

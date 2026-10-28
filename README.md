@@ -118,4 +118,6 @@ Clash Verge 的扩展脚本保存在本地，不能像订阅那样填链接自�
 
 和 `tokyo.js` 的区别有四处。没有美国组，原先走 `🇺🇸 美国` 的 AI 与美国账户类规则一律走 `🚀 节点选择`，也就是这一个节点；`🚀 节点选择` 去掉了 `(日本|东京)` 筛选，节点名不带这两个字也能手动选。MEXC、Bybit、OKX 这些原本从东京出去的规则同样改从美国出去，这几家限制美国用户，用这份配置时最好别登录。QUIC 改为全局拒绝，不再只拒绝 `no-quic.list`：Vision 的 TLS 直通只对 TCP 生效，QUIC 只能装进 XUDP 再走同一条 TCP 隧道，通常不如直接走 TCP，拒绝后 App 立即改用 TCP。最后，订阅没有开启 DNS 时补一份 fake-ip、国内 DoH 的 DNS 设置：东京订阅自带 DNS，甲骨文这份没有，10 月 28 日把只换分组与规则的 `tokyo-us.js` 套在它上面，Clash Mi 连不上网，而用内置覆写可以上网，推断是缺 DNS 所致。订阅自己开了 DNS 时脚本不动它。
 
+同一天换上 `oracle.js` 后仍然连不上。Clash Mi 的日志里，x.com、twitter、claude.ai、iCloud 等域名的连接进入内核时目标地址落在 `172.16.0.0/12`，全部命中模板私有 IP 段里的 `IP-CIDR,172.16.0.0/12,DIRECT,no-resolve` 而直连，直连时再解析到被污染的地址，超时或被拒绝；按域名分流的规则都排在私有 IP 段之后，轮不到它们。不带这类地址的连接一切正常，例如 `icloud-content.com` 落到兜底走甲骨文，`cdn-apple.com` 命中国内 IP 段直连。所以甲骨文版去掉了这一条，局域网主机名仍由 `GEOSITE,private` 直连，真正落在这个网段的局域网设备会改走代理，家用路由器很少用这个网段。这些地址为什么落在这个网段还没有查清，推测是 Clash Mi 在 iOS 上自己分配的假地址。
+
 在 Clash Mi 里的用法与 `clashmi.js` 相同：「核心设置 → 覆写」里添加配置链接，类型选 JS，链接填 `https://raw.githubusercontent.com/hirosesuzu0619/shadowrocket-rules/HEAD/configs/oracle.js`，再在甲骨文那份配置的自定义覆写里选中它。脚本不含秘密，直接按 raw 链接加载即可，不需要 Gist。生成时只用 Node 把脚本套在这份配置上检查过分组、规则与规则集的引用，没有用 mihomo 实际加载。

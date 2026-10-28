@@ -183,6 +183,10 @@ ORACLE_DNS = {
     "default-nameserver": ["223.5.5.5", "119.29.29.29"],
     "nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
 }
+# 10 月 28 日的 Clash Mi（iOS）日志里，x.com、claude.ai、iCloud 等域名连接进内核时目标地址落在 172.16.0.0/12，
+# 被模板私有 IP 段的这一条 no-resolve 直连规则抢先命中，直连再解析到被污染的地址而超时。按域名的规则都排在它后面，
+# 所以甲骨文版去掉这一条，局域网主机名仍由 GEOSITE,private 直连；家里路由器很少用这个网段
+ORACLE_DROP = "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve"
 ORACLE_MAIN = f"""var DNS = {json.dumps(ORACLE_DNS, ensure_ascii=False, indent=2)};
 
 function main(config) {{
@@ -379,7 +383,9 @@ def write_oracle(text):
         g.pop("filter", None)
     no_quic = f"tokyo-{TOKYO_NO_QUIC}"
     providers = {k: v for k, v in conf["rule-providers"].items() if k != no_quic}
-    rules = [ORACLE_QUIC if no_quic in r else r.replace("," + TOKYO_US, "," + TOKYO_PROXY) for r in conf["rules"]]
+    if ORACLE_DROP not in conf["rules"]:
+        raise SystemExit(f"东京版里找不到 {ORACLE_DROP}，oracle.js 没有生成")
+    rules = [ORACLE_QUIC if no_quic in r else r.replace("," + TOKYO_US, "," + TOKYO_PROXY) for r in conf["rules"] if r != ORACLE_DROP]
     if rules.count(ORACLE_QUIC) != 1 or any(TOKYO_US in r for r in rules):
         raise SystemExit("东京版的 QUIC 规则或美国规则与预期不符，oracle.js 没有生成")
     intro = [

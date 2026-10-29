@@ -63,8 +63,8 @@ TOKYO_US = "🇺🇸 美国"
 US_PROVIDER = "us"
 # 这些个人规则分段走美国：AI 服务，以及按账号所在地钉在美国的希尔顿、美国金融与运营商、TopCashback、返利联盟跳转与 Trip.com。Siri、Apple TV+、X、交易所等其余分段走东京
 TOKYO_US_SECTIONS = {"Meta AI", "Claude", "Grok", "希尔顿", "Kraken", "Kalshi", "Equifax", "美国金融与运营商", "TopCashback", "联盟平台跳转（返利）", "Trip.com"}
-# 模板里这几条 GEOSITE 规则也走美国：OpenAI、Anthropic、Google Gemini 与 AI 平台合集
-TOKYO_US_GEOSITES = {"openai", "anthropic", "google-gemini", "category-ai-!cn"}
+# 模板里这几条 GEOSITE 规则也走美国：Anthropic、Google Gemini 与 AI 平台合集。OpenAI 不在其中，ChatGPT 走日本
+TOKYO_US_GEOSITES = {"anthropic", "google-gemini", "category-ai-!cn"}
 TOKYO_GROUPS = f"""proxy-groups:
   - name: "{TOKYO_PROXY}"
     type: select
@@ -531,8 +531,8 @@ def main():
 
     tokyo_header = (
         "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，主订阅是东京住宅 IP，另加一份美国订阅。\n"
-        "# 规则的条目与 nextin.yaml 相同，只改指向：AI 服务（模板的 OpenAI、Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）\n"
-        "# 以及希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、Trip.com 走「🇺🇸 美国」，其余原先指向代理分组的规则一律走「🚀 节点选择」。\n"
+        "# 规则的条目与 nextin.yaml 相同，只改指向：AI 服务（模板的 Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）\n"
+        "# 以及希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、Trip.com 走「🇺🇸 美国」，OpenAI 与其余原先指向代理分组的规则一律走「🚀 节点选择」。\n"
         "# 「🇺🇸 美国」的节点来自 proxy-providers 里的 us，链接在 tokyo.js 顶部填写；这里的 url 只是占位。\n"
         "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、美国、东京四个规则集。\n"
         "# 兜底的 MATCH 走代理，之前先让国内域名（GEOSITE,cn）直连，再把其余域名在本机解析、落在国内 IP 段的也直连，减少挤上住宅线路的流量。\n"

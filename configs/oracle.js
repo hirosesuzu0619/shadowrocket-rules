@@ -1,5 +1,5 @@
 // 本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。
-// 甲骨文节点配置用的覆写：规则与分流与东京版相同，美国规则走名字带「美国」的节点，其余默认走名字带「日本」的节点，日本不通再换美国。
+// 甲骨文节点配置用的覆写：规则与分流与东京版相同，美国规则先走名字带「美国」的节点、不通再换日本，其余先走日本、不通再换美国。
 // 订阅里的节点原样保留，分组里的节点按节点名现填；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。
 var PROXY_GROUPS = [
   {
@@ -184,7 +184,7 @@ function main(config) {
   groups.forEach(function (g) {
     if (g.name === TOKYO_PROXY) g.proxies = [FALLBACK].concat(all, ["DIRECT"]);
     if (g.name === FALLBACK) g.proxies = all.length ? all : ["DIRECT"];
-    if (g.name === TOKYO_US) g.proxies = us;
+    if (g.name === TOKYO_US) g.proxies = us.concat(jp, rest);
   });
   if (!us.length) {
     groups = groups.filter(function (g) { return g.name !== TOKYO_US; });

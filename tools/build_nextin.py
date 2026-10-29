@@ -167,8 +167,8 @@ function main(config) {{
 """
 
 # 甲骨文版：配置是本机的 mihomo 文件，里面有「甲骨文日本」「甲骨文美国」两个 VLESS 节点（凭据不进仓库）。规则与分流照搬东京版：
-# 原先走「🇺🇸 美国」的 AI 与美国账户类规则走名字带「美国」的节点，其余走「🚀 节点选择」，默认经「🛡️ 故障转移」先用名字带「日本」的节点，
-# 日本不通才换美国。分组里的节点由脚本按配置里的节点名现填；没有美国节点时去掉美国组，美国规则改走「🚀 节点选择」，与东京版不填美国订阅时一样
+# 原先走「🇺🇸 美国」的 AI 与美国账户类规则先用名字带「美国」的节点，美国不通才换日本；其余走「🚀 节点选择」，默认经「🛡️ 故障转移」
+# 先用名字带「日本」的节点，日本不通才换美国。两边互为备份：风控严的服务另走手机漫游流量，不靠美国组。分组里的节点由脚本按配置里的节点名现填；没有美国节点时去掉美国组，美国规则改走「🚀 节点选择」，与东京版不填美国订阅时一样
 ORACLE_JS = ROOT / "configs" / "oracle.js"
 # 订阅没有开启 DNS 时补上这一份。东京订阅自带 DNS，甲骨文的配置文件没有，套上只换分组与规则的覆写后内核没有 DNS 可用。
 # 用国内 DoH 解析：兜底前「本机解析落在国内 IP 段的也直连」那一层靠它把苹果、微软这类有国内 CDN 的服务留在直连；
@@ -215,7 +215,7 @@ function main(config) {{
   groups.forEach(function (g) {{
     if (g.name === TOKYO_PROXY) g.proxies = [FALLBACK].concat(all, ["DIRECT"]);
     if (g.name === FALLBACK) g.proxies = all.length ? all : ["DIRECT"];
-    if (g.name === TOKYO_US) g.proxies = us;
+    if (g.name === TOKYO_US) g.proxies = us.concat(jp, rest);
   }});
   if (!us.length) {{
     groups = groups.filter(function (g) {{ return g.name !== TOKYO_US; }});
@@ -436,7 +436,7 @@ def write_oracle(text):
         raise SystemExit("东京版里没有走美国组的规则，oracle.js 没有生成")
     intro = [
         "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
-        "甲骨文节点配置用的覆写：规则与分流与东京版相同，美国规则走名字带「美国」的节点，其余默认走名字带「日本」的节点，日本不通再换美国。",
+        "甲骨文节点配置用的覆写：规则与分流与东京版相同，美国规则先走名字带「美国」的节点、不通再换日本，其余先走日本、不通再换美国。",
         "订阅里的节点原样保留，分组里的节点按节点名现填；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。",
     ]
     js = (

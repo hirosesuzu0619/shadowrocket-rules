@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""把 modules/personal.module 的分组与规则并入 Nextin Hub 生成的 mihomo 模板，输出 configs/nextin.yaml。
+"""把 modules/personal.module 的分组与规则并入 Nextin Hub 生成的 mihomo 模板，再从合并结果导出下面几份覆写。
 
 模板原有内容一行不改，只在两处插入：
 - 个人分组追加在 proxy-groups 末尾；
 - 个人规则插在私有 IP 之后、广告拦截之前，与 Shadowrocket 里模块规则先于配置规则的顺序一致。
 模板兜底的 MATCH 若指向代理，还会在它之前加一条 GEOSITE,cn,DIRECT，让国内域名直连；MATCH 已是 DIRECT 时不加。
 
-同时把结果中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
+合并结果不再单独保存，其中的代理组与规则导出为 configs/clashmi.js，供 Clash Mi 作 JS 覆写使用（需要 PyYAML）。
 
 另外生成东京静态住宅 IP 订阅用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
 AI 与美国账户类服务走另一份美国订阅的节点，其余代理分组合并成东京一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
@@ -25,7 +25,6 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MODULE = ROOT / "modules" / "personal.module"
-OUTPUT = ROOT / "configs" / "nextin.yaml"
 CLASHMI = ROOT / "configs" / "clashmi.js"
 URL_FILE = ROOT / "tools" / "nextin.url"
 TOKYO = ROOT / "configs" / "tokyo.yaml"
@@ -40,7 +39,7 @@ GROUPS_ANCHOR = "\nrules:\n"
 # 在 MATCH 之前补一条国内域名直连，排在被墙名单之后，境外域名不受影响；MATCH 本身已是 DIRECT 时这条多余，不加
 CN_DIRECT = '  # 国内域名直连（个人追加）\n  - "GEOSITE,cn,DIRECT"\n'
 MATCH_RE = re.compile(r'^  - "MATCH,([^"]*)"\n', re.M)
-# 这几段交给模板自带的 OpenAI、Anthropic、Gemini 分组处理，速度与纯 Nextin 模板一致
+# 这几段交给模板自带的 OpenAI、Anthropic、Gemini 分组处理，速度与纯 Nextin 模板一致；模板的 OpenAI 分组在 tools/nextin.url 里设成了日本节点
 # 值为 None 表示整段不搬；Claude 段只去掉主站两条，其余见下方 FOLLOW_GEOSITE
 SKIP_RULES = {
     "Claude": {"DOMAIN-KEYWORD,claude,US", "DOMAIN-SUFFIX,anthropic.com,US"},
@@ -288,7 +287,7 @@ def convert_group(line):
 def write_js(text, path, intro, main_js=None):
     """导出 JS 覆写：订阅的节点、DNS 等设置原样保留，只换掉代理组与规则。
 
-    nextin.yaml 里的 proxies 是空的，直接当 YAML 覆写可能把订阅节点一并清空，所以改用脚本只替换这两项。
+    模板里的 proxies 是空的，直接当 YAML 覆写可能把订阅节点一并清空，所以改用脚本只替换这两项。
     未传 main_js 时 include-all-proxies 换成 include-all，订阅若用 proxy-providers 下发节点也能纳入各组；
     东京版自带 main_js，保留 include-all-proxies，免得美国订阅的节点混进东京的组。
     Clash Mi 与 Clash Verge 的扩展脚本都调用 main(config)，同一份脚本两边通用。
@@ -508,30 +507,19 @@ def main():
     assert template.count(RULES_ANCHOR) == 1 and template.count(GROUPS_ANCHOR) == 1
     assert len(MATCH_RE.findall(template)) == 1
     match_direct = MATCH_RE.search(template).group(1) == "DIRECT"
-    header = (
-        "# 本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，模板原有内容未改动。\n"
-        "# 个人规则排在私有地址之后、广告拦截之前；模块的 URL 重写与 MITM 在 mihomo 里没有对应功能，未搬入。\n"
-        "# Claude 主站（claude 关键字与 anthropic.com）以及 OpenAI、Gemini 两段未搬入，由模板自带的 Anthropic、OpenAI、Gemini 分组处理；Claude 的人机验证、statsig 与遥测风控域名改指模板的 Anthropic 分组，与主站同一出口。\n"
-    ) + (
-        "# 模板兜底的 MATCH 为 DIRECT：未命中任何规则的连接一律直连。\n"
-        if match_direct else
-        "# 兜底的 MATCH 之前追加了 GEOSITE,cn,DIRECT：模板的国内 IP 规则带 no-resolve，不加这条时国内域名会走代理。\n"
-    )
     body = template.replace(GROUPS_ANCHOR, "\n" + "\n".join(group_lines).rstrip("\n") + "\n" + GROUPS_ANCHOR, 1)
     body = body.replace(RULES_ANCHOR, "\n".join(rule_lines) + "\n" + RULES_ANCHOR, 1)
     if not match_direct:
         body = MATCH_RE.sub(lambda m: CN_DIRECT + m.group(0), body, count=1)
-    out = header + body
-    OUTPUT.write_text(out, encoding="utf-8")
-    print(f"wrote {OUTPUT.relative_to(ROOT)}: {len(names)} groups, {sum(1 for l in rule_lines if l.startswith('  - '))} rules")
-    write_js(out, CLASHMI, [
-        "本文件由 tools/build_nextin.py 从 configs/nextin.yaml 生成，不要手工编辑。",
-        "Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 nextin.yaml 的。",
+    print(f"merged {len(names)} groups, {sum(1 for l in rule_lines if l.startswith('  - '))} rules into the template")
+    write_js(body, CLASHMI, [
+        "本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，不要手工编辑。",
+        "Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成合并后的。",
     ])
 
     tokyo_header = (
-        "# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，主订阅是东京住宅 IP，另加一份美国订阅。\n"
-        "# 规则的条目与 nextin.yaml 相同，只改指向：AI 服务（模板的 Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）\n"
+        "# 本文件由 tools/build_nextin.py 生成，是 configs/clashmi.js 的东京静态住宅 IP 版，主订阅是东京住宅 IP，另加一份美国订阅。\n"
+        "# 规则的条目与 clashmi.js 相同，只改指向：AI 服务（模板的 Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）\n"
         "# 以及希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、Trip.com 走「🇺🇸 美国」，OpenAI 与其余原先指向代理分组的规则一律走「🚀 节点选择」。\n"
         "# 「🇺🇸 美国」的节点来自 proxy-providers 里的 us，链接在 tokyo.js 顶部填写；这里的 url 只是占位。\n"
         "# 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、美国、东京四个规则集。\n"

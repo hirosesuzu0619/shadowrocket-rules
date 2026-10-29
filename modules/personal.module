@@ -173,12 +173,19 @@ DOMAIN-KEYWORD,datadoghq,US
 DOMAIN-SUFFIX,siftscience.com,US
 
 # —— OpenAI ——
-# chatgpt.com 为主站与 App 接口，oaistatic/oaiusercontent 为静态资源与用户上传/生成的文件
-DOMAIN-SUFFIX,openai.com,US
-DOMAIN-SUFFIX,chatgpt.com,US
-DOMAIN-SUFFIX,oaistatic.com,US
-DOMAIN-SUFFIX,oaiusercontent.com,US
-DOMAIN-SUFFIX,sora.com,US
+# ChatGPT 走日本（10 月 29 日起，此前走 US）
+# chatgpt.com 为主站与 App 接口，oaistatic/oaiusercontent 为静态资源与用户上传/生成的文件，oaistatsig 为特性开关
+# 名单照 geosite 的 openai 分类补齐；不写的话会落到 ai.list 的 AI_US。livekit 三个子域是高级语音
+DOMAIN-SUFFIX,openai.com,JP
+DOMAIN-SUFFIX,chatgpt.com,JP
+DOMAIN-SUFFIX,chat.com,JP
+DOMAIN-SUFFIX,oaistatic.com,JP
+DOMAIN-SUFFIX,oaiusercontent.com,JP
+DOMAIN-SUFFIX,oaistatsig.com,JP
+DOMAIN-SUFFIX,sora.com,JP
+DOMAIN-SUFFIX,chatgpt.livekit.cloud,JP
+DOMAIN-SUFFIX,host.livekit.cloud,JP
+DOMAIN-SUFFIX,turn.livekit.cloud,JP
 
 # —— Gemini ——
 # google.com 整体由别的模块分到「谷歌服务」，这里只挑出 Gemini 相关的子域，用精确匹配避免牵动其他 Google 服务

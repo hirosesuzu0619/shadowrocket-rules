@@ -109,7 +109,7 @@ var RULES = [
   "GEOSITE,category-ads-all,REJECT",
   "GEOSITE,tracker,REJECT",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,openai)),REJECT",
-  "GEOSITE,openai,🇺🇸 美国",
+  "GEOSITE,openai,🚀 节点选择",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,anthropic)),REJECT",
   "GEOSITE,anthropic,🇺🇸 美国",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,google-gemini)),REJECT",

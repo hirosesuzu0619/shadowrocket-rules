@@ -147,6 +147,11 @@ var DNS = {
   ]
 };
 
+var STATS_NODES = {
+  "stats.jp.node": "甲骨文日本",
+  "stats.us.node": "甲骨文美国"
+};
+
 function main(config) {
   // 订阅自带的 DNS 设置可能用 rule-set:名称 引用订阅里的规则集（如 nameserver-policy、fake-ip-filter 里的 cn-domain），
   // 整体换掉规则集时内核会报 not found rule-set 而拒绝加载，所以把 DNS 引用到的那几个保留下来
@@ -160,8 +165,13 @@ function main(config) {
   });
   for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
   if (!config["dns"] || !config["dns"]["enable"]) config["dns"] = DNS;
+  var names = (config["proxies"] || []).map(function (p) { return p.name; });
+  var stats = [];
+  for (var host in STATS_NODES) {
+    if (names.indexOf(STATS_NODES[host]) >= 0) stats.push("DOMAIN," + host + "," + STATS_NODES[host]);
+  }
   config["proxy-groups"] = PROXY_GROUPS;
   config["rule-providers"] = providers;
-  config["rules"] = RULES;
+  config["rules"] = stats.concat(RULES);
   return config;
 }

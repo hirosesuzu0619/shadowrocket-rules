@@ -184,13 +184,23 @@ ORACLE_DNS = {
 # 被模板私有 IP 段的这一条 no-resolve 直连规则抢先命中，直连再解析到被污染的地址而超时。按域名的规则都排在它后面，
 # 所以甲骨文版去掉这一条，局域网主机名仍由 GEOSITE,private 直连；家里路由器很少用这个网段
 ORACLE_DROP = "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve"
+# 两个甲骨文节点各有一个流量页面，节点上的 Xray 把 stats.<节点>.node 转给本机的页面服务，所以必须经对应的节点访问，
+# 不能跟着「🚀 节点选择」走。这两条排在所有规则之前；配置里没有同名节点时不加，免得内核因找不到节点拒绝加载
+ORACLE_STATS = {"stats.jp.node": "甲骨文日本", "stats.us.node": "甲骨文美国"}
 ORACLE_MAIN = f"""var DNS = {json.dumps(ORACLE_DNS, ensure_ascii=False, indent=2)};
+
+var STATS_NODES = {json.dumps(ORACLE_STATS, ensure_ascii=False, indent=2)};
 
 function main(config) {{
 {KEEP_DNS_PROVIDERS}  if (!config["dns"] || !config["dns"]["enable"]) config["dns"] = DNS;
+  var names = (config["proxies"] || []).map(function (p) {{ return p.name; }});
+  var stats = [];
+  for (var host in STATS_NODES) {{
+    if (names.indexOf(STATS_NODES[host]) >= 0) stats.push("DOMAIN," + host + "," + STATS_NODES[host]);
+  }}
   config["proxy-groups"] = PROXY_GROUPS;
   config["rule-providers"] = providers;
-  config["rules"] = RULES;
+  config["rules"] = stats.concat(RULES);
   return config;
 }}
 """

@@ -1,5 +1,5 @@
-// 本文件由 tools/build_nextin.py 从 configs/nextin.yaml 生成，不要手工编辑。
-// Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成 nextin.yaml 的。
+// 本文件由 tools/build_nextin.py 生成：在 Nextin Hub 模板之上并入 modules/personal.module 的分组与规则，不要手工编辑。
+// Clash Mi 的 JS 覆写：订阅里的节点、DNS 等设置原样保留，只把代理组与规则换成合并后的。
 var PROXY_GROUPS = [
   {
     "name": "🚀 节点选择",
@@ -15,7 +15,7 @@ var PROXY_GROUPS = [
   {
     "name": "✦ OpenAI",
     "type": "url-test",
-    "filter": "(?i)((?:美国|United States|Los Angeles|Seattle|\\bUSA?\\b))",
+    "filter": "(?i)((?:日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|Tokyo|Osaka|\\bJP\\b|🇯🇵))",
     "exclude-filter": "(?i)(?:(?:(剩余|流量|套餐|到期|重置|官网|Traffic|Expire))|(?:(?:(?:((?:香港|Hong Kong|\\bHK\\b)|(?:新加坡|Singapore|\\bSG\\b)|(?:台湾|Taiwan|\\bTW\\b))))))",
     "url": "https://www.gstatic.com/generate_204",
     "interval": 300,

@@ -1,5 +1,5 @@
-# 本文件由 tools/build_nextin.py 生成，是 configs/nextin.yaml 的东京静态住宅 IP 版，主订阅是东京住宅 IP，另加一份美国订阅。
-# 规则的条目与 nextin.yaml 相同，只改指向：AI 服务（模板的 Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）
+# 本文件由 tools/build_nextin.py 生成，是 configs/clashmi.js 的东京静态住宅 IP 版，主订阅是东京住宅 IP，另加一份美国订阅。
+# 规则的条目与 clashmi.js 相同，只改指向：AI 服务（模板的 Anthropic、Gemini、AI 平台合集与个人规则的 Meta AI、Claude、Grok）
 # 以及希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、Trip.com 走「🇺🇸 美国」，OpenAI 与其余原先指向代理分组的规则一律走「🚀 节点选择」。
 # 「🇺🇸 美国」的节点来自 proxy-providers 里的 us，链接在 tokyo.js 顶部填写；这里的 url 只是占位。
 # 个人规则与国内 IP 段放在 rules/tokyo/ 下的规则集里，按链接定时下载；个人规则依次匹配拒绝、直连、美国、东京四个规则集。
@@ -11,7 +11,7 @@ x-nextin:
   version: 1
   mode: subscription-template
   name: "追踪器、AI 平台合集、OpenAI、Anthropic、Google Gemini"
-  builder: "{\"schemaVersion\":1,\"catalogVersion\":\"routing-1-1dee4937\",\"ruleIDs\":[\"private-domain\",\"private-ip\",\"ads\",\"tracker\",\"openai\",\"anthropic\",\"gemini\",\"ai-all\",\"cn-ip\",\"gfw\"],\"defaultPolicy\":{\"includePattern\":\".*\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"ruleOverrides\":{\"ai-all\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"openai\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"anthropic\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"gemini\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"}},\"matchTarget\":\"direct\"}"
+  builder: "{\"schemaVersion\":1,\"catalogVersion\":\"routing-1-1dee4937\",\"ruleIDs\":[\"private-domain\",\"private-ip\",\"ads\",\"tracker\",\"openai\",\"anthropic\",\"gemini\",\"ai-all\",\"cn-ip\",\"gfw\"],\"defaultPolicy\":{\"includePattern\":\".*\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"ruleOverrides\":{\"ai-all\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"openai\":{\"includePattern\":\"(?i)((?:日本|东京|東京|大阪|名古屋|埼玉|川日|沪日|滬日|Japan|Tokyo|Osaka|\\\\bJP\\\\b|🇯🇵))\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"anthropic\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"},\"gemini\":{\"includePattern\":\"(?i)((?:美国|United States|Los Angeles|Seattle|\\\\bUSA?\\\\b))\",\"excludeRegions\":[\"hk\",\"sg\",\"tw\"],\"excludePattern\":\"\",\"groupType\":\"url-test\"}},\"matchTarget\":\"direct\"}"
 
 
 proxies: []

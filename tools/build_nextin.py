@@ -10,7 +10,7 @@
 
 另外生成东京静态住宅 IP 订阅用的 configs/tokyo.yaml 与 configs/tokyo.js：规则与上面相同，
 AI 与美国账户类服务走另一份美国订阅的节点，其余代理分组合并成东京一个；兜底改为代理，之前先按国内域名、再按解析出的国内 IP 直连。
-再从东京版派生甲骨文美国单节点用的 configs/oracle.js：规则相同，不分东京与美国，订阅没有 DNS 时补上。
+再从东京版派生甲骨文节点用的 configs/oracle.js：规则与分流相同，美国规则走甲骨文美国，其余走甲骨文日本，订阅没有 DNS 时补上。
 这两版都只拒绝走代理的 QUIC，直连的照常放行。
 
 用法：python3 tools/build_nextin.py [模板文件或 URL]，不带参数时按 tools/nextin.url 里的地址重新下载模板。
@@ -166,8 +166,9 @@ function main(config) {{
 }}
 """
 
-# 甲骨文美国单节点版：订阅只有一个美国 VLESS 节点，规则沿用东京版，不分东京与美国，原先走「🇺🇸 美国」的也走「🚀 节点选择」。
-# 节点名不带日本、东京，所以去掉「🚀 节点选择」的筛选；节点凭据留在本机的订阅文件里，脚本不含任何秘密，Clash Mi 可以直接按 raw 链接加载
+# 甲骨文版：配置是本机的 mihomo 文件，里面有「甲骨文日本」「甲骨文美国」两个 VLESS 节点（凭据不进仓库）。规则与分流照搬东京版：
+# 原先走「🇺🇸 美国」的 AI 与美国账户类规则走名字带「美国」的节点，其余走「🚀 节点选择」，默认经「🛡️ 故障转移」先用名字带「日本」的节点，
+# 日本不通才换美国。分组里的节点由脚本按配置里的节点名现填；没有美国节点时去掉美国组，美国规则改走「🚀 节点选择」，与东京版不填美国订阅时一样
 ORACLE_JS = ROOT / "configs" / "oracle.js"
 # 订阅没有开启 DNS 时补上这一份。东京订阅自带 DNS，甲骨文的配置文件没有，套上只换分组与规则的覆写后内核没有 DNS 可用。
 # 用国内 DoH 解析：兜底前「本机解析落在国内 IP 段的也直连」那一层靠它把苹果、微软这类有国内 CDN 的服务留在直连；
@@ -184,13 +185,49 @@ ORACLE_DNS = {
 # 被模板私有 IP 段的这一条 no-resolve 直连规则抢先命中，直连再解析到被污染的地址而超时。按域名的规则都排在它后面，
 # 所以甲骨文版去掉这一条，局域网主机名仍由 GEOSITE,private 直连；家里路由器很少用这个网段
 ORACLE_DROP = "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve"
+# 两个甲骨文节点各有一个流量页面，节点上的 Xray 把 stats.<节点>.node 转给本机的页面服务，所以必须经对应的节点访问，
+# 不能跟着「🚀 节点选择」走。这两条排在所有规则之前；配置里没有同名节点时不加，免得内核因找不到节点拒绝加载
+ORACLE_STATS = {"stats.jp.node": "甲骨文日本", "stats.us.node": "甲骨文美国"}
+ORACLE_JP = "(日本|东京|東京)"
+ORACLE_US = "(美国|美國)"
+ORACLE_FALLBACK = "🛡️ 故障转移"
 ORACLE_MAIN = f"""var DNS = {json.dumps(ORACLE_DNS, ensure_ascii=False, indent=2)};
+
+var STATS_NODES = {json.dumps(ORACLE_STATS, ensure_ascii=False, indent=2)};
+
+var JP_NAME = /{ORACLE_JP}/;
+var US_NAME = /{ORACLE_US}/;
+var INFO_NODES = /{INFO_NODES[4:]}/i;
+var TOKYO_PROXY = "{TOKYO_PROXY}";
+var TOKYO_US = "{TOKYO_US}";
+var FALLBACK = "{ORACLE_FALLBACK}";
 
 function main(config) {{
 {KEEP_DNS_PROVIDERS}  if (!config["dns"] || !config["dns"]["enable"]) config["dns"] = DNS;
-  config["proxy-groups"] = PROXY_GROUPS;
+  // 按节点名分出日本与美国；故障转移的顺序是日本、美国、其余节点
+  var names = (config["proxies"] || []).map(function (p) {{ return p.name; }}).filter(function (n) {{ return !INFO_NODES.test(n); }});
+  var jp = names.filter(function (n) {{ return JP_NAME.test(n); }});
+  var us = names.filter(function (n) {{ return US_NAME.test(n) && jp.indexOf(n) < 0; }});
+  var rest = names.filter(function (n) {{ return jp.indexOf(n) < 0 && us.indexOf(n) < 0; }});
+  var all = jp.concat(us, rest);
+  var groups = JSON.parse(JSON.stringify(PROXY_GROUPS));
+  var rules = RULES;
+  groups.forEach(function (g) {{
+    if (g.name === TOKYO_PROXY) g.proxies = [FALLBACK].concat(all, ["DIRECT"]);
+    if (g.name === FALLBACK) g.proxies = all.length ? all : ["DIRECT"];
+    if (g.name === TOKYO_US) g.proxies = us;
+  }});
+  if (!us.length) {{
+    groups = groups.filter(function (g) {{ return g.name !== TOKYO_US; }});
+    rules = rules.map(function (r) {{ return r.replace("," + TOKYO_US, "," + TOKYO_PROXY); }});
+  }}
+  var stats = [];
+  for (var host in STATS_NODES) {{
+    if (names.indexOf(STATS_NODES[host]) >= 0) stats.push("DOMAIN," + host + "," + STATS_NODES[host]);
+  }}
+  config["proxy-groups"] = groups;
   config["rule-providers"] = providers;
-  config["rules"] = RULES;
+  config["rules"] = stats.concat(rules);
   return config;
 }}
 """
@@ -381,22 +418,26 @@ def reject_proxied_quic(lines):
 
 
 def write_oracle(text):
-    """从 tokyo.yaml 派生甲骨文单节点版的 oracle.js：去掉美国组与「🚀 节点选择」的筛选，美国规则改走它。
+    """从 tokyo.yaml 派生甲骨文版的 oracle.js：规则与分流与东京版相同，分组里的节点由脚本按配置里的节点名现填。
     拒绝走代理的 QUIC 的规则原样沿用。规则集链接与东京版相同，改规则两边同时生效。"""
     conf = yaml.safe_load(text)
-    groups = [g for g in conf["proxy-groups"] if g["name"] != TOKYO_US]
+    groups = conf["proxy-groups"]
+    if [g["name"] for g in groups] != [TOKYO_PROXY, TOKYO_US, ORACLE_FALLBACK]:
+        raise SystemExit("东京版的分组与预期不符，oracle.js 没有生成")
     for g in groups:
-        g.pop("filter", None)
+        for key in ("include-all-proxies", "filter", "exclude-filter", "use"):
+            g.pop(key, None)
+        g["proxies"] = []
     providers = conf["rule-providers"]
     if ORACLE_DROP not in conf["rules"]:
         raise SystemExit(f"东京版里找不到 {ORACLE_DROP}，oracle.js 没有生成")
-    rules = [r.replace("," + TOKYO_US, "," + TOKYO_PROXY) for r in conf["rules"] if r != ORACLE_DROP]
-    if any(TOKYO_US in r for r in rules):
-        raise SystemExit("东京版的美国规则与预期不符，oracle.js 没有生成")
+    rules = [r for r in conf["rules"] if r != ORACLE_DROP]
+    if not any(r.endswith("," + TOKYO_US) for r in rules):
+        raise SystemExit("东京版里没有走美国组的规则，oracle.js 没有生成")
     intro = [
         "本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。",
-        "甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」。",
-        "订阅里的节点原样保留；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。",
+        "甲骨文节点配置用的覆写：规则与分流与东京版相同，美国规则走名字带「美国」的节点，其余默认走名字带「日本」的节点，日本不通再换美国。",
+        "订阅里的节点原样保留，分组里的节点按节点名现填；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。",
     ]
     js = (
         "".join(f"// {line}\n" for line in intro)
@@ -407,7 +448,6 @@ def write_oracle(text):
     )
     ORACLE_JS.write_text(js, encoding="utf-8")
     print(f"wrote {ORACLE_JS.relative_to(ROOT)}: {len(groups)} groups, {len(rules)} rules")
-
 
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else URL_FILE.read_text().strip()

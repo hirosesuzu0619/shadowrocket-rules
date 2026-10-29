@@ -1,24 +1,25 @@
 // 本文件由 tools/build_nextin.py 从 configs/tokyo.yaml 生成，不要手工编辑。
-// 甲骨文美国单节点配置用的覆写：规则与东京版相同，原先走美国组的也走「🚀 节点选择」。
-// 订阅里的节点原样保留；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。
+// 甲骨文节点配置用的覆写：规则与分流与东京版相同，美国规则走名字带「美国」的节点，其余默认走名字带「日本」的节点，日本不通再换美国。
+// 订阅里的节点原样保留，分组里的节点按节点名现填；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。
 var PROXY_GROUPS = [
   {
     "name": "🚀 节点选择",
     "type": "select",
-    "include-all-proxies": true,
-    "exclude-filter": "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)",
-    "proxies": [
-      "🛡️ 故障转移",
-      "DIRECT"
-    ]
+    "proxies": []
+  },
+  {
+    "name": "🇺🇸 美国",
+    "type": "fallback",
+    "url": "https://www.gstatic.com/generate_204",
+    "interval": 300,
+    "proxies": []
   },
   {
     "name": "🛡️ 故障转移",
     "type": "fallback",
-    "include-all-proxies": true,
-    "exclude-filter": "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)",
     "url": "https://www.gstatic.com/generate_204",
-    "interval": 300
+    "interval": 300,
+    "proxies": []
   }
 ];
 
@@ -102,19 +103,19 @@ var RULES = [
   "RULE-SET,tokyo-reject,REJECT",
   "RULE-SET,tokyo-direct,DIRECT",
   "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-us)),REJECT",
-  "RULE-SET,tokyo-us,🚀 节点选择",
+  "RULE-SET,tokyo-us,🇺🇸 美国",
   "AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,tokyo-proxy)),REJECT",
   "RULE-SET,tokyo-proxy,🚀 节点选择",
   "GEOSITE,category-ads-all,REJECT",
   "GEOSITE,tracker,REJECT",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,openai)),REJECT",
-  "GEOSITE,openai,🚀 节点选择",
+  "GEOSITE,openai,🇺🇸 美国",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,anthropic)),REJECT",
-  "GEOSITE,anthropic,🚀 节点选择",
+  "GEOSITE,anthropic,🇺🇸 美国",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,google-gemini)),REJECT",
-  "GEOSITE,google-gemini,🚀 节点选择",
+  "GEOSITE,google-gemini,🇺🇸 美国",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,category-ai-!cn)),REJECT",
-  "GEOSITE,category-ai-!cn,🚀 节点选择",
+  "GEOSITE,category-ai-!cn,🇺🇸 美国",
   "RULE-SET,tokyo-cn-ip,DIRECT,no-resolve",
   "AND,((NETWORK,UDP),(DST-PORT,443),(GEOSITE,gfw)),REJECT",
   "GEOSITE,gfw,🚀 节点选择",
@@ -147,6 +148,18 @@ var DNS = {
   ]
 };
 
+var STATS_NODES = {
+  "stats.jp.node": "甲骨文日本",
+  "stats.us.node": "甲骨文美国"
+};
+
+var JP_NAME = /(日本|东京|東京)/;
+var US_NAME = /(美国|美國)/;
+var INFO_NODES = /(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)/i;
+var TOKYO_PROXY = "🚀 节点选择";
+var TOKYO_US = "🇺🇸 美国";
+var FALLBACK = "🛡️ 故障转移";
+
 function main(config) {
   // 订阅自带的 DNS 设置可能用 rule-set:名称 引用订阅里的规则集（如 nameserver-policy、fake-ip-filter 里的 cn-domain），
   // 整体换掉规则集时内核会报 not found rule-set 而拒绝加载，所以把 DNS 引用到的那几个保留下来
@@ -160,8 +173,29 @@ function main(config) {
   });
   for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
   if (!config["dns"] || !config["dns"]["enable"]) config["dns"] = DNS;
-  config["proxy-groups"] = PROXY_GROUPS;
+  // 按节点名分出日本与美国；故障转移的顺序是日本、美国、其余节点
+  var names = (config["proxies"] || []).map(function (p) { return p.name; }).filter(function (n) { return !INFO_NODES.test(n); });
+  var jp = names.filter(function (n) { return JP_NAME.test(n); });
+  var us = names.filter(function (n) { return US_NAME.test(n) && jp.indexOf(n) < 0; });
+  var rest = names.filter(function (n) { return jp.indexOf(n) < 0 && us.indexOf(n) < 0; });
+  var all = jp.concat(us, rest);
+  var groups = JSON.parse(JSON.stringify(PROXY_GROUPS));
+  var rules = RULES;
+  groups.forEach(function (g) {
+    if (g.name === TOKYO_PROXY) g.proxies = [FALLBACK].concat(all, ["DIRECT"]);
+    if (g.name === FALLBACK) g.proxies = all.length ? all : ["DIRECT"];
+    if (g.name === TOKYO_US) g.proxies = us;
+  });
+  if (!us.length) {
+    groups = groups.filter(function (g) { return g.name !== TOKYO_US; });
+    rules = rules.map(function (r) { return r.replace("," + TOKYO_US, "," + TOKYO_PROXY); });
+  }
+  var stats = [];
+  for (var host in STATS_NODES) {
+    if (names.indexOf(STATS_NODES[host]) >= 0) stats.push("DOMAIN," + host + "," + STATS_NODES[host]);
+  }
+  config["proxy-groups"] = groups;
   config["rule-providers"] = providers;
-  config["rules"] = RULES;
+  config["rules"] = stats.concat(rules);
   return config;
 }

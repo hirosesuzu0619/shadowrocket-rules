@@ -210,15 +210,14 @@ DOMAIN-SUFFIX,twimg.com,US
 DOMAIN-SUFFIX,t.co,US
 
 # —— OKX ——
-# 旧手动规则指向 PROXY，跟随首页节点；10 月 10 日的日志里 okx.com 走了美国3，而 OKX 不对美国用户开放
-# okx.com 也在 Nextin 模板的被墙名单里，那个分组排除新加坡、可能落到美国，所以钉到 SG；用关键字以便同时命中 okx.com.cdn.cloudflare.net 这类 CDN 别名
-DOMAIN-KEYWORD,okx.com,SG
-DOMAIN-KEYWORD,okx-dns,SG
+# 10 月 30 日起由 SG 改钉 US；用关键字以便同时命中 okx.com.cdn.cloudflare.net 这类 CDN 别名
+DOMAIN-KEYWORD,okx.com,US
+DOMAIN-KEYWORD,okx-dns,US
 
-# —— 第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 已有的新加坡出口保持一致）——
+# —— 第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 同走美国出口）——
 # geetest 是独立的验证码厂商，非某个交易所自有；cloudauth-device 是阿里云实人认证，直连会在做身份核验时原样交出真实 IP
-DOMAIN-SUFFIX,geetest.com,SG
-DOMAIN-SUFFIX,cloudauth-device.aliyuncs.com,SG
+DOMAIN-SUFFIX,geetest.com,US
+DOMAIN-SUFFIX,cloudauth-device.aliyuncs.com,US
 
 # —— 希尔顿 ——
 # 会话里 App 的自有域名全部走 FINAL,DIRECT，等于用真实 IP 查房价、登录会员账号；酒店按来源地区做定价与会员政策，出口需与账号注册地一致

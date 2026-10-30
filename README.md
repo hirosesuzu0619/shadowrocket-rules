@@ -24,7 +24,7 @@ DNS 用腾讯与阿里的 DoH，失败时退回系统 DNS；IPv6 关闭，免得
 
 模块定义了 `US`、`JP`、`MEXC_JP`、`BYBIT_TW`、`SG` 五个地区分组，都是 `url-test`，参数与上面相同；`MEXC_JP`、`BYBIT_TW` 另外排除倍率与信息节点。各组都不写 `policy-path`，`policy-regex-filter` 直接作用于全部节点，订阅拉来的节点也会被吸收，订阅链接不必出现在文件里。筛选依据是节点名，所以正则里同时写了简体、繁体和英文，两字母缩写加了 `\b` 边界；换机场后进分组看一眼实际匹配到的节点，按需补关键字。有两点要注意：分组行和规则行都不能写行尾注释，Shadowrocket 会把它并进正则，组里一个节点都匹配不到，引用它的规则会退回首页所选节点；启用模块前要删掉 App 里手工建的同名分组，主配置里也不能有同名组，否则改了模块不生效、出口来回跳。
 
-规则按服务所需的出口地区分段，格式是 `类型,值,策略`。走 `US` 的有 Siri 与 Apple 隐私中继、Apple TV+、X（含图片视频与 t.co）、Meta AI（含 `graph.facebook.com`）、Claude、Gemini、Grok，以及按账号所在地钉在美国的希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、返利联盟的跳转域名和 Trip.com。走 `JP` 的有 OpenAI（ChatGPT）和甲骨文（`DOMAIN-KEYWORD,oracle`）。MEXC 及其推送、监控、风控等一整套域名走 `MEXC_JP`，Bybit 走 `BYBIT_TW`（Bybit 已限制日本用户）。OKX、它活动期间用到的第三方验证 SDK、一个钱包接口，以及「待定地区」那一段银行、加密卡与 DeFi 服务暂走 `SG`。Apple Music 整体直连走国内 CDN，其中播放授权 `play.itunes.apple.com` 与 `bag.itunes.apple.com` 和 Apple TV+ 共用，让给 Apple Music 直连，Apple TV+ 加载不出来时先查这两个域名。中国建设银行与两个国内站点显式直连。
+规则按服务所需的出口地区分段，格式是 `类型,值,策略`。走 `US` 的有 Siri 与 Apple 隐私中继、Apple TV+、X（含图片视频与 t.co）、Meta AI（含 `graph.facebook.com`）、Claude、Gemini、Grok，以及按账号所在地钉在美国的希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、返利联盟的跳转域名、Trip.com，以及 OKX 和它活动期间用到的第三方验证 SDK。走 `JP` 的有 OpenAI（ChatGPT）和甲骨文（`DOMAIN-KEYWORD,oracle`）。MEXC 及其推送、监控、风控等一整套域名走 `MEXC_JP`，Bybit 走 `BYBIT_TW`（Bybit 已限制日本用户）。一个钱包接口和「待定地区」那一段银行、加密卡与 DeFi 服务暂走 `SG`。Apple Music 整体直连走国内 CDN，其中播放授权 `play.itunes.apple.com` 与 `bag.itunes.apple.com` 和 Apple TV+ 共用，让给 Apple Music 直连，Apple TV+ 加载不出来时先查这两个域名。中国建设银行与两个国内站点显式直连。
 
 几处写法有意放宽或共用，改动时留意。Claude 用 `DOMAIN-KEYWORD,claude` 统一命中散落在多个根域下的主站、artifact 与分享页，Siri 也用关键字，名字里带这些词的其他网站会一并走美国。Claude 段里的 Cloudflare 人机验证 `challenges.cloudflare.com`、statsig、sentry、datadog、sift 是为了让验证与风控和主站同一出口，但它们被多个 App 共用：ChatGPT 的人机验证与上报也会走美国，ChatGPT 登录时若反复弹验证，先看这一条。OpenAI 段照 geosite 的 openai 分类补齐了 `chat.com`、`oaistatsig.com` 与高级语音用的三个 livekit 子域，否则它们会落到 `AI_US`。
 
@@ -38,7 +38,7 @@ DNS 用腾讯与阿里的 DoH，失败时退回系统 DNS；IPv6 关闭，免得
 
 覆写建三个分组，节点按名字现填：名字带「日本」「东京」「東京」的算日本，带「美国」「美國」的算美国。`🚀 节点选择` 是手动选择组，默认用 `🛡️ 故障转移`，也可以手动选定某个节点或直连；`🛡️ 故障转移` 按日本、美国的顺序，日本不通才换美国；`🇺🇸 美国` 反过来，先美国后日本。配置里没有美国节点时去掉美国组，相关规则改走 `🚀 节点选择`。两个节点各有一个流量页面，`stats.jp.node`、`stats.us.node` 两条规则排在最前，钉到对应节点；配置里没有同名节点时不加，节点改名后要同步改脚本里的 `ORACLE_STATS`。
 
-走 `🇺🇸 美国` 的是 AI 与美国账户类服务：模块里的 Meta AI、Claude（含人机验证、statsig 与上报）、Grok、希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、返利联盟跳转、Trip.com，加上 Nextin 模板的 Anthropic、Gemini、AI 平台合集三条 geosite。其余原先指向代理的规则都走 `🚀 节点选择`，也就是从日本出去，包括 ChatGPT（模板的 `GEOSITE,openai`）、甲骨文、Siri、Apple TV+、X、MEXC、Bybit、OKX 和待定地区。Bybit 限制日本用户，OKX 是否对日本开放需要自行确认。
+走 `🇺🇸 美国` 的是 AI 与美国账户类服务：模块里的 Meta AI、Claude（含人机验证、statsig 与上报）、Grok、希尔顿、Kraken、Kalshi、Equifax、美国金融与运营商、TopCashback、返利联盟跳转、Trip.com、OKX 与第三方验证 SDK，加上 Nextin 模板的 Anthropic、Gemini、AI 平台合集三条 geosite。其余原先指向代理的规则都走 `🚀 节点选择`，也就是从日本出去，包括 ChatGPT（模板的 `GEOSITE,openai`）、甲骨文、Siri、Apple TV+、X、MEXC、Bybit 和待定地区。Bybit 限制日本用户。
 
 规则顺序是：流量页面两条；私有地址直连；个人规则的四个规则集，依次是拒绝、直连、美国、日本；模板的广告与追踪器拦截；模板的 OpenAI、Anthropic、Gemini、AI 合集；国内 IP 段（`no-resolve`）直连；模板的被墙名单；`GEOSITE,cn` 直连；再引用一次国内 IP 段，这次不带 `no-resolve`，名单外的域名先在本机解析，落在国内 IP 段的也直连；最后 `MATCH,🚀 节点选择`。第二次引用国内 IP 段是为了让苹果、微软更新、Akamai 这类在国内有 CDN 的境外服务直连，不挤占节点。模板私有 IP 段里的 `172.16.0.0/12` 被去掉了：Clash Mi 在 iOS 上有些连接进内核时目标地址落在这个网段，会被它抢先直连再解析到被污染的地址；局域网主机名仍由 `GEOSITE,private` 直连。
 

@@ -11,6 +11,10 @@ DOMAIN-KEYWORD,datadoghq
 DOMAIN-SUFFIX,siftscience.com
 DOMAIN-SUFFIX,grok.com
 DOMAIN-SUFFIX,x.ai
+DOMAIN-KEYWORD,okx.com
+DOMAIN-KEYWORD,okx-dns
+DOMAIN-SUFFIX,geetest.com
+DOMAIN-SUFFIX,cloudauth-device.aliyuncs.com
 DOMAIN-SUFFIX,hilton.com
 DOMAIN-SUFFIX,hilton.io
 DOMAIN-SUFFIX,hiltonapi.com

@@ -149,6 +149,11 @@ DOMAIN-SUFFIX,meta.ai,US
 DOMAIN-SUFFIX,meta.com,US
 # hatch.metaaivm.com 是 Meta AI 的后端，不在上面两个后缀之下，此前落到 FINAL 的台湾出口
 DOMAIN-SUFFIX,metaaivm.com,US
+# 以下三个照 MetaCubeX geosite meta 名单开头的 Meta AI 部分补齐：metaaiusercontent.com 是生成图片与视频的内容域名，llama.com 是 Llama 官网与模型下载，atmeta.com 是 Meta 的公司域名
+# 不补时它们落到 FINAL 的 OVERSEAS，出口与 meta.ai 不一致；名单其余部分（Facebook、Instagram、WhatsApp、Threads 等）大多已由基础配置的关键字与被墙名单走 OVERSEAS，没有整份引入
+DOMAIN-SUFFIX,metaaiusercontent.com,US
+DOMAIN-SUFFIX,llama.com,US
+DOMAIN-SUFFIX,atmeta.com,US
 # 10 月 1 日打开 Meta AI（Muse）时，hatch-api、graph.meta.ai 等都走了美国1，唯独 graph.facebook.com 被基础配置的 facebook 关键字带去了香港1；它是 Meta 账号登录与数据上报的公共接口，出口需与 meta.ai 一致
 # Facebook、Instagram 等 Meta 系 App 发往这个域名的请求也会一并走 US
 DOMAIN,graph.facebook.com,US

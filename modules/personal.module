@@ -256,6 +256,12 @@ DOMAIN-KEYWORD,kalshi,US
 # 用关键字统一命中 equifax.com 及其各个子域（邮件跳转、登录、账户中心），名字里带 equifax 的其他根域也一并走 US
 DOMAIN-KEYWORD,equifax,US
 
+# —— Credit Karma ——
+# 与 Equifax 一样是美国征信类账户，按来源地区做登录风控，出口需与账号所在地一致
+# 用关键字统一命中 creditkarma.com 及各子域（App 接口、登录、邮件跳转）；ckassets.com 是它的静态资源与图片域名
+DOMAIN-KEYWORD,creditkarma,US
+DOMAIN-SUFFIX,ckassets.com,US
+
 # —— 美国金融与运营商 ——
 # 以下来自设备上的旧手动规则，此前指向 PROXY（首页所选节点）；与 Kraken、Kalshi、Equifax 一样按账号所在地固定走 US
 # Schwab 的域名有 schwab.com、schwabplan.com 等多个根域，用关键字统一命中

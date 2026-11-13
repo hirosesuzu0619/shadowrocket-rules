@@ -42,7 +42,7 @@ SKIP_RULES = {
 FOLLOW_GEOSITE = {"Claude": "anthropic"}
 
 # 甲骨文版的三个分组，节点由 ORACLE_MAIN 按配置里的节点名现填。原先指向各地区分组的规则都改指「🚀 节点选择」（默认先日本），
-# 下面列出的改指「🇺🇸 美国」（先美国）
+# 下面列出的改指「🇺🇸 美国」（只用美国节点）
 TOKYO_PROXY = "🚀 节点选择"
 INFO_NODES = "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)"
 TOKYO_US = "🇺🇸 美国"
@@ -56,9 +56,7 @@ TOKYO_GROUPS = f"""proxy-groups:
     type: select
     proxies: []
   - name: "{TOKYO_US}"
-    type: fallback
-    url: "https://www.gstatic.com/generate_204"
-    interval: 300
+    type: select
     proxies: []
   - name: "🛡️ 故障转移"
     type: fallback
@@ -109,8 +107,8 @@ KEEP_DNS_PROVIDERS = """  // 订阅自带的 DNS 设置可能用 rule-set:名称
   for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
 """
 # 甲骨文版：配置是本机的 mihomo 文件，里面有「甲骨文日本」「甲骨文美国」两个 VLESS 节点（凭据不进仓库）。
-# 走「🇺🇸 美国」的 AI 与美国账户类规则先用名字带「美国」的节点，美国不通才换日本；其余走「🚀 节点选择」，默认经「🛡️ 故障转移」
-# 先用名字带「日本」的节点，日本不通才换美国。两边互为备份：风控严的服务另走手机漫游流量，不靠美国组。分组里的节点由脚本按配置里的节点名现填；没有美国节点时去掉美国组，美国规则改走「🚀 节点选择」
+# 走「🇺🇸 美国」的 AI 与美国账户类规则只用名字带「美国」的节点，美国不通就断连，不换日本也不直连；其余走「🚀 节点选择」，默认经「🛡️ 故障转移」
+# 先用名字带「日本」的节点，日本不通才换美国。美国组不拿日本兜底，免得 AI 与美国账户类服务从日本出去触发风控。分组里的节点由脚本按配置里的节点名现填；没有美国节点时美国组只放 REJECT
 ORACLE_JS = ROOT / "configs" / "oracle.js"
 # 订阅没有开启 DNS 时补上这一份。甲骨文的配置文件没有 DNS，套上只换分组与规则的覆写后内核没有 DNS 可用。
 # 用国内 DoH 解析：兜底前「本机解析落在国内 IP 段的也直连」那一层靠它把苹果、微软这类有国内 CDN 的服务留在直连；
@@ -157,12 +155,9 @@ function main(config) {{
   groups.forEach(function (g) {{
     if (g.name === TOKYO_PROXY) g.proxies = [FALLBACK].concat(all, ["DIRECT"]);
     if (g.name === FALLBACK) g.proxies = all.length ? all : ["DIRECT"];
-    if (g.name === TOKYO_US) g.proxies = us.concat(jp, rest);
+    // 美国组只放美国节点：美国不通时这些连接直接失败，不换日本也不直连；配置里没有美国节点时只放 REJECT
+    if (g.name === TOKYO_US) g.proxies = us.length ? us : ["REJECT"];
   }});
-  if (!us.length) {{
-    groups = groups.filter(function (g) {{ return g.name !== TOKYO_US; }});
-    rules = rules.map(function (r) {{ return r.replace("," + TOKYO_US, "," + TOKYO_PROXY); }});
-  }}
   var stats = [];
   for (var host in STATS_NODES) {{
     if (names.indexOf(STATS_NODES[host]) >= 0) stats.push("DOMAIN," + host + "," + STATS_NODES[host]);
@@ -337,7 +332,7 @@ def write_oracle(text):
         raise SystemExit("没有走美国组的规则，oracle.js 没有生成")
     intro = [
         "本文件由 tools/build_nextin.py 生成，不要手工编辑。",
-        "甲骨文节点配置用的覆写：美国规则先走名字带「美国」的节点、不通再换日本，其余先走日本、不通再换美国。",
+        "甲骨文节点配置用的覆写：美国规则只走名字带「美国」的节点，不通就断连，不换日本也不直连；其余先走日本、不通再换美国。",
         "订阅里的节点原样保留，分组里的节点按节点名现填；订阅没有开启 DNS 时补上下面的 DNS，其余设置不动。规则集由内核按链接定时下载。",
     ]
     js = (

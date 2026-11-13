@@ -3,7 +3,7 @@
 
 先把 modules/personal.module 的分组与规则并入 Nextin Hub 生成的 mihomo 模板：个人规则插在私有 IP 之后、广告拦截之前，
 与 Shadowrocket 里模块规则先于配置规则的顺序一致。再把合并结果改写成甲骨文版：代理分组合并成「🚀 节点选择」「🇺🇸 美国」
-「🛡️ 故障转移」三个，美国账户类服务走美国组，AI 与其余走「🚀 节点选择」；个人规则与国内 IP 段移进规则集，按 raw 链接下载；
+「🛡️ 故障转移」三个，AI 与美国账户类服务走美国组，其余走「🚀 节点选择」；个人规则与国内 IP 段移进规则集，按 raw 链接下载；
 兜底走代理，之前先按国内域名、再按解析出的国内 IP 直连；只拒绝走代理的 QUIC，直连的照常放行。
 规则集名与目录沿用早先东京住宅 IP 版的 tokyo 前缀，设备上的覆写按这些链接下载，改名会让旧覆写一时找不到规则集。
 
@@ -46,11 +46,11 @@ FOLLOW_GEOSITE = {"Claude": "anthropic"}
 TOKYO_PROXY = "🚀 节点选择"
 INFO_NODES = "(?i)(剩余|流量|套餐|到期|重置|官网|Traffic|Expire)"
 TOKYO_US = "🇺🇸 美国"
-# 这些个人规则分段走美国：按账号所在地钉在美国的希尔顿、美国金融与运营商、TopCashback、返利联盟跳转、Trip.com 与 OKX。
-# AI（Meta AI、Claude 的人机验证与风控上报、Grok）与 Siri、Apple TV+、X、交易所等其余分段走日本
-TOKYO_US_SECTIONS = {"希尔顿", "Kraken", "Kalshi", "Equifax", "Credit Karma", "美国金融与运营商", "TopCashback", "联盟平台跳转（返利）", "Trip.com", "OKX", "第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 同走美国出口）"}
-# 模板里要走美国的 GEOSITE 规则。目前为空：OpenAI、Anthropic、Google Gemini 与 AI 平台合集都走日本
-TOKYO_US_GEOSITES = set()
+# 这些个人规则分段走美国：AI 服务，以及按账号所在地钉在美国的希尔顿、美国金融与运营商、TopCashback、返利联盟跳转、Trip.com 与 OKX。
+# Siri、Apple TV+、X、交易所等其余分段走日本
+TOKYO_US_SECTIONS = {"Meta AI", "Claude", "Grok", "希尔顿", "Kraken", "Kalshi", "Equifax", "Credit Karma", "美国金融与运营商", "TopCashback", "联盟平台跳转（返利）", "Trip.com", "OKX", "第三方验证/风控 SDK（OKX 活动期间抓到，与 OKX 同走美国出口）"}
+# 模板里这几条 GEOSITE 规则也走美国：OpenAI、Anthropic、Google Gemini 与 AI 平台合集，AI 全部从美国出去
+TOKYO_US_GEOSITES = {"openai", "anthropic", "google-gemini", "category-ai-!cn"}
 TOKYO_GROUPS = f"""proxy-groups:
   - name: "{TOKYO_PROXY}"
     type: select
@@ -109,7 +109,7 @@ KEEP_DNS_PROVIDERS = """  // 订阅自带的 DNS 设置可能用 rule-set:名称
   for (var name in RULE_PROVIDERS) providers[name] = RULE_PROVIDERS[name];
 """
 # 甲骨文版：配置是本机的 mihomo 文件，里面有「甲骨文日本」「甲骨文美国」两个 VLESS 节点（凭据不进仓库）。
-# 走「🇺🇸 美国」的美国账户类规则先用名字带「美国」的节点，美国不通才换日本；其余走「🚀 节点选择」，默认经「🛡️ 故障转移」
+# 走「🇺🇸 美国」的 AI 与美国账户类规则先用名字带「美国」的节点，美国不通才换日本；其余走「🚀 节点选择」，默认经「🛡️ 故障转移」
 # 先用名字带「日本」的节点，日本不通才换美国。两边互为备份：风控严的服务另走手机漫游流量，不靠美国组。分组里的节点由脚本按配置里的节点名现填；没有美国节点时去掉美国组，美国规则改走「🚀 节点选择」
 ORACLE_JS = ROOT / "configs" / "oracle.js"
 # 订阅没有开启 DNS 时补上这一份。甲骨文的配置文件没有 DNS，套上只换分组与规则的覆写后内核没有 DNS 可用。

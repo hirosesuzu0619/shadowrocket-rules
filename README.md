@@ -38,7 +38,7 @@ DNS 用腾讯与阿里的 DoH，失败时退回系统 DNS；IPv6 关闭，免得
 
 覆写建三个分组，节点按名字现填：名字带「日本」「东京」「東京」的算日本，带「美国」「美國」的算美国。`🚀 节点选择` 是手动选择组，默认用 `🛡️ 故障转移`，也可以手动选定某个节点或直连；`🛡️ 故障转移` 按日本、美国的顺序，日本不通才换美国；`🇺🇸 美国` 反过来，先美国后日本。配置里没有美国节点时去掉美国组，相关规则改走 `🚀 节点选择`。两个节点各有一个流量页面，`stats.jp.node`、`stats.us.node` 两条规则排在最前，钉到对应节点；配置里没有同名节点时不加，节点改名后要同步改脚本里的 `ORACLE_STATS`。
 
-走 `🇺🇸 美国` 的只有美国账户类服务：模块里的希尔顿、Kraken、Kalshi、Equifax、Credit Karma、美国金融与运营商、TopCashback、返利联盟跳转、Trip.com、OKX 与第三方验证 SDK。其余原先指向代理的规则都走 `🚀 节点选择`，也就是从日本出去，包括全部 AI 服务（模板的 OpenAI、Anthropic、Gemini、AI 平台合集四条 geosite，模块里的 Meta AI、Grok，以及 Claude 段的人机验证、statsig 与上报）、甲骨文、Siri、Apple TV+、X、MEXC、Bybit 和待定地区。Bybit 限制日本用户。Claude 段的 `challenges.cloudflare.com`、statsig、sentry、datadog、sift 被多个服务共用，美国账户类网站用到它们时也会从日本出去，与主站出口不一致。
+走 `🇺🇸 美国` 的是全部 AI 与美国账户类服务：模块里的 Meta AI、Claude（含人机验证、statsig 与上报）、Grok、希尔顿、Kraken、Kalshi、Equifax、Credit Karma、美国金融与运营商、TopCashback、返利联盟跳转、Trip.com、OKX 与第三方验证 SDK，加上 Nextin 模板的 OpenAI（ChatGPT）、Anthropic、Gemini、AI 平台合集四条 geosite。其余原先指向代理的规则都走 `🚀 节点选择`，也就是从日本出去，包括甲骨文、Siri、Apple TV+、X、MEXC、Bybit 和待定地区。Bybit 限制日本用户。
 
 规则顺序是：流量页面两条；私有地址直连；个人规则的四个规则集，依次是拒绝、直连、美国、日本；模板的广告与追踪器拦截；模板的 OpenAI、Anthropic、Gemini、AI 合集；国内 IP 段（`no-resolve`）直连；模板的被墙名单；`GEOSITE,cn` 直连；再引用一次国内 IP 段，这次不带 `no-resolve`，名单外的域名先在本机解析，落在国内 IP 段的也直连；最后 `MATCH,🚀 节点选择`。第二次引用国内 IP 段是为了让苹果、微软更新、Akamai 这类在国内有 CDN 的境外服务直连，不挤占节点。模板私有 IP 段里的 `172.16.0.0/12` 被去掉了：Clash Mi 在 iOS 上有些连接进内核时目标地址落在这个网段，会被它抢先直连再解析到被污染的地址；局域网主机名仍由 `GEOSITE,private` 直连。
 

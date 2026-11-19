@@ -26,7 +26,7 @@ DNS 用腾讯与阿里的 DoH，失败时退回系统 DNS；IPv6 关闭，免得
 
 规则按服务所需的出口地区分段，格式是 `类型,值,策略`。走 `US` 的有 Siri 与 Apple 隐私中继、Apple TV+、X（含图片视频与 t.co）、Meta AI（含 `graph.facebook.com`）、OpenAI（ChatGPT）、Claude、Gemini、Grok，以及按账号所在地钉在美国的希尔顿、Kraken、Kalshi、Equifax、Credit Karma、美国金融与运营商、TopCashback、返利联盟的跳转域名、Trip.com，以及 OKX 和它活动期间用到的第三方验证 SDK。走 `JP` 的有甲骨文（`DOMAIN-KEYWORD,oracle`）。MEXC 及其推送、监控、风控等一整套域名走 `MEXC_JP`，Bybit 走 `BYBIT_TW`（Bybit 已限制日本用户）。一个钱包接口和「待定地区」那一段银行、加密卡与 DeFi 服务暂走 `SG`。Apple Music 整体直连走国内 CDN，其中播放授权 `play.itunes.apple.com` 与 `bag.itunes.apple.com` 和 Apple TV+ 共用，让给 Apple Music 直连，Apple TV+ 加载不出来时先查这两个域名。中国建设银行与两个国内站点显式直连。
 
-几处写法有意放宽或共用，改动时留意。Claude 用 `DOMAIN-KEYWORD,claude` 统一命中散落在多个根域下的主站、artifact 与分享页，Siri 也用关键字，名字里带这些词的其他网站会一并走美国。Claude 段里的 Cloudflare 人机验证 `challenges.cloudflare.com`、statsig、sentry、datadog、sift 是为了让验证与风控和主站同一出口，但它们被多个 App 共用：ChatGPT 的人机验证与上报也走美国，与主站出口一致。OpenAI 段照 geosite 的 openai 分类补齐了 `chat.com`、`oaistatsig.com` 与高级语音用的三个 livekit 子域，否则它们会落到 `AI_US`。
+几处写法有意放宽或共用，改动时留意。Claude 用 `DOMAIN-KEYWORD,claude` 统一命中散落在多个根域下的主站、artifact 与分享页，Siri 也用关键字，名字里带这些词的其他网站会一并走美国。Claude 段里的 Cloudflare 人机验证 `challenges.cloudflare.com`、statsig、sentry、datadog、sift，以及 Intercom 客服（`api-iam`、`nexus-websocket-a`）、Stripe 风控指纹 `r.stripe.com` 、FCM 推送令牌 `fcmtoken.googleapis.com`、Sift 网页端回传域 `hexagon-analytics.com` 和 hCaptcha 人机验证，是为了让验证、客服与风控和主站同一出口，但它们被多个 App 共用：ChatGPT 的人机验证与上报也走美国，与主站出口一致。OpenAI 段照 geosite 的 openai 分类补齐了 `chat.com`、`oaistatsig.com` 与高级语音用的三个 livekit 子域，否则它们会落到 `AI_US`。
 
 规则开头是 `AND,((PROTOCOL,UDP),(DST-PORT,443)),REJECT-NO-DROP`，拒绝 QUIC。国内运营商对出境 UDP 限速丢包严重，QUIC 经节点时 App 从后台切回来常卡到超时才退回 TCP，直接拒绝后立即改用 TCP。这条必须排在所有域名规则之前。它前面有两条例外，让 Claude（claude 关键字与 anthropic.com）的 QUIC 走 `US`，是对比上传速度的试验，没有效果时删掉即可。
 

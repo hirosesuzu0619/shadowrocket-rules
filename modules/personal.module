@@ -176,6 +176,17 @@ DOMAIN-SUFFIX,sentry.io,US
 # datadog 的浏览器上报域名按站点区分根域，如 browser-intake-us5-datadoghq.com，不在 datadoghq.com 之下，只能用关键字命中
 DOMAIN-KEYWORD,datadoghq,US
 DOMAIN-SUFFIX,siftscience.com,US
+# 以下 5 条来自网传 Claude 分流清单（11 月 19 日核实）；clau.de 是官方短链，名字不含 claude，关键字命中不了
+# Intercom 客服、Stripe 风控指纹、FCM 推送令牌是多家共用的服务，其他 App 发往这几个域名的请求也会走 US
+DOMAIN-SUFFIX,clau.de,US
+DOMAIN,api-iam.intercom.io,US
+DOMAIN,nexus-websocket-a.intercom.io,US
+DOMAIN,r.stripe.com,US
+DOMAIN,fcmtoken.googleapis.com,US
+# Sift 网页端脚本 s-cdn.anthropic.com/s.js 实际把数据回传到 hexagon-analytics.com，只写 siftscience.com 会漏掉网页端
+# hCaptcha 是 Anthropic 子处理方列表里的人机验证服务，出口需与主站一致；它同样被许多网站共用，那些网站的验证也会走 US
+DOMAIN-SUFFIX,hexagon-analytics.com,US
+DOMAIN-SUFFIX,hcaptcha.com,US
 
 # —— OpenAI ——
 # ChatGPT 走美国（11 月 13 日起改回；10 月 29 日至 11 月 13 日走日本）

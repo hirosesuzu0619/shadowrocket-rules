@@ -12,6 +12,13 @@ DOMAIN-SUFFIX,featureassets.org
 DOMAIN-SUFFIX,sentry.io
 DOMAIN-KEYWORD,datadoghq
 DOMAIN-SUFFIX,siftscience.com
+DOMAIN-SUFFIX,clau.de
+DOMAIN,api-iam.intercom.io
+DOMAIN,nexus-websocket-a.intercom.io
+DOMAIN,r.stripe.com
+DOMAIN,fcmtoken.googleapis.com
+DOMAIN-SUFFIX,hexagon-analytics.com
+DOMAIN-SUFFIX,hcaptcha.com
 DOMAIN-SUFFIX,grok.com
 DOMAIN-SUFFIX,x.ai
 DOMAIN-KEYWORD,okx.com

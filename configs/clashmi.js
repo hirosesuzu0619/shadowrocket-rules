@@ -330,6 +330,8 @@ var RULES = [
   "DOMAIN-SUFFIX,weijingle.com,DIRECT",
   "DOMAIN-SUFFIX,ccb.com,DIRECT",
   "DOMAIN-SUFFIX,ccb.com.cn,DIRECT",
+  "DOMAIN-SUFFIX,zetta-yotta.com,DIRECT",
+  "DOMAIN-SUFFIX,medical-force.cn,DIRECT",
   "GEOSITE,category-ads-all,REJECT",
   "GEOSITE,tracker,REJECT",
   "GEOSITE,openai,✦ OpenAI",

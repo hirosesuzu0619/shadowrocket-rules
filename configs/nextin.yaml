@@ -350,6 +350,8 @@ rules:
   - "DOMAIN-SUFFIX,weijingle.com,DIRECT"
   - "DOMAIN-SUFFIX,ccb.com,DIRECT"
   - "DOMAIN-SUFFIX,ccb.com.cn,DIRECT"
+  - "DOMAIN-SUFFIX,zetta-yotta.com,DIRECT"
+  - "DOMAIN-SUFFIX,medical-force.cn,DIRECT"
   # 广告拦截 · Nextin bundled MRS
   - "GEOSITE,category-ads-all,REJECT"
   # 追踪器 · Nextin bundled MRS

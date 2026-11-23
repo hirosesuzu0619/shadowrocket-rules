@@ -371,6 +371,10 @@ DOMAIN-SUFFIX,weijingle.com,DIRECT
 # 中国建设银行：App 接口、网银、推送与广告资源都在 ccb.com 与 ccb.com.cn 两个后缀下；银行 App 看来源 IP 做风控，境外出口可能被要求重新验证，显式直连，不依赖各版本的国内名单
 DOMAIN-SUFFIX,ccb.com,DIRECT
 DOMAIN-SUFFIX,ccb.com.cn,DIRECT
+# 长颈鹿医阵营（微信小程序）：页面接口在 zettayotta-platform.medical-force.cn，已靠国内名单直连；营销接口 marketing-server.zetta-yotta.com 不在任何国内名单里，11 月 23 日的日志显示它落到兜底，经甲骨文日本出去，小程序因此很慢
+# 两个后缀一并显式直连
+DOMAIN-SUFFIX,zetta-yotta.com,DIRECT
+DOMAIN-SUFFIX,medical-force.cn,DIRECT
 
 [URL Rewrite]
 # google.cn 与 g.cn 只剩一个跳转页，这里由 Shadowrocket 在本地直接回 302，改到 www.google.com
